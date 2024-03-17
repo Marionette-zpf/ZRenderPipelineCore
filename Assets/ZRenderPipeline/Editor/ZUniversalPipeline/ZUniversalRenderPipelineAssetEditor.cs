@@ -1,18 +1,18 @@
 using UnityEditorInternal;
 using UnityEngine;
-using UnityEngine.Rendering.ZRendering;
-using UnityEngine.Rendering.ZRendering.NPR;
+using UnityEngine.Rendering.ZPipeline;
+using UnityEngine.Rendering.ZPipeline.ZUniversal;
 
-using Styles = UnityEditor.Rendering.ZRendering.NPR.ZNPRRenderPipelineAssetUI.Styles;
+using Styles = UnityEditor.Rendering.ZUniversal.ZUniversalRenderPipelineAssetUI.Styles;
 
 
-namespace UnityEditor.Rendering.ZRendering.NPR
+namespace UnityEditor.Rendering.ZUniversal
 {
     /// <summary>
     /// Editor script for a <c>UniversalRenderPipelineAsset</c> class.
     /// </summary>
-    [CustomEditor(typeof(ZNPRRenderPipelineAsset)), CanEditMultipleObjects]
-    public class ZNPRRenderPipelineAssetEditor : Editor
+    [CustomEditor(typeof(ZUniversalRenderPipelineAsset)), CanEditMultipleObjects]
+    public class ZUniversalRenderPipelineAssetEditor : Editor
     {
         SerializedProperty m_RendererDataProp;
         SerializedProperty m_DefaultRendererProp;
@@ -20,19 +20,19 @@ namespace UnityEditor.Rendering.ZRendering.NPR
         internal ReorderableList rendererList => m_RendererDataList;
         ReorderableList m_RendererDataList;
 
-        private SerializedZNPRRenderPipelineAsset m_SerializedURPAsset;
+        private SerializedZUniversalRenderPipelineAsset m_SerializedURPAsset;
 
         /// <inheritdoc/>
         public override void OnInspectorGUI()
         {
             m_SerializedURPAsset.Update();
-            ZNPRRenderPipelineAssetUI.Inspector.Draw(m_SerializedURPAsset, this);
+            ZUniversalRenderPipelineAssetUI.Inspector.Draw(m_SerializedURPAsset, this);
             m_SerializedURPAsset.Apply();
         }
 
         void OnEnable()
         {
-            m_SerializedURPAsset = new SerializedZNPRRenderPipelineAsset(serializedObject);
+            m_SerializedURPAsset = new SerializedZUniversalRenderPipelineAsset(serializedObject);
             CreateRendererReorderableList();
         }
 
@@ -99,7 +99,7 @@ namespace UnityEditor.Rendering.ZRendering.NPR
 
             Rect selectRect = new Rect(rect.x + rect.width - 24, rect.y, 24, EditorGUIUtility.singleLineHeight);
 
-            ZNPRRenderPipelineAsset asset = target as ZNPRRenderPipelineAsset;
+            ZUniversalRenderPipelineAsset asset = target as ZUniversalRenderPipelineAsset;
 
             if (asset.ValidateRendererData(index))
             {

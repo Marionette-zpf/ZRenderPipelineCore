@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace UnityEngine.Rendering.ZRendering
+namespace UnityEngine.Rendering.ZPipeline
 {
     /// <summary>
     /// Contains properties and helper functions that you can use when rendering.

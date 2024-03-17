@@ -6,10 +6,10 @@ using UnityEditor.ProjectWindowCallback;
 using ShaderKeywordFilter = UnityEditor.ShaderKeywordFilter;
 #endif
 
-namespace UnityEngine.Rendering.ZRendering.NPR
+namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 {
     [Serializable, ReloadGroup, ExcludeFromPreset]
-    public class ZNPRRendererData : ZScriptableRendererData, ISerializationCallbackReceiver
+    public class ZUniversalRendererData : ZScriptableRendererData, ISerializationCallbackReceiver
     {
 
 #if UNITY_EDITOR
@@ -18,15 +18,15 @@ namespace UnityEngine.Rendering.ZRendering.NPR
         {
             public override void Action(int instanceId, string pathName, string resourceFile)
             {
-                var instance = ZNPRRenderPipelineAsset.CreateRendererAsset(pathName, ZRendererType.ZNRPRenderer, false) as ZNPRRendererData;
+                var instance = ZUniversalRenderPipelineAsset.CreateRendererAsset(pathName, ZRendererType.ZNRPRenderer, false) as ZUniversalRendererData;
                 Selection.activeObject = instance;
             }
         }
 
-        [MenuItem("Assets/Create/Rendering/ZNPR Renderer", priority = CoreUtils.Sections.section3 + CoreUtils.Priorities.assetsCreateRenderingMenuPriority + 2)]
+        [MenuItem("Assets/Create/Rendering/ZUniversal Renderer", priority = CoreUtils.Sections.section3 + CoreUtils.Priorities.assetsCreateRenderingMenuPriority + 2)]
         static void CreateUniversalRendererData()
         {
-            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, CreateInstance<CreateUniversalRendererAsset>(), "New Custom ZNPR Renderer Data.asset", null, null);
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, CreateInstance<CreateUniversalRendererAsset>(), "New Custom ZUniversal Renderer Data.asset", null, null);
         }
 
 #endif
@@ -59,7 +59,7 @@ namespace UnityEngine.Rendering.ZRendering.NPR
             {
                 ReloadAllNullProperties();
             }
-            return new ZNRPRenderer(this);
+            return new ZUniversalRenderer(this);
         }
 
         /// <inheritdoc/>
@@ -80,7 +80,7 @@ namespace UnityEngine.Rendering.ZRendering.NPR
         private void ReloadAllNullProperties()
         {
 #if UNITY_EDITOR
-            ResourceReloader.TryReloadAllNullIn(this, ZNPRRenderPipelineAsset.packagePath);
+            ResourceReloader.TryReloadAllNullIn(this, ZUniversalRenderPipelineAsset.packagePath);
 #endif
         }
 

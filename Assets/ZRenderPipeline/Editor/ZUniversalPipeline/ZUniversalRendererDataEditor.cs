@@ -1,14 +1,14 @@
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.ZRendering.NPR;
+using UnityEngine.Rendering.ZPipeline.ZUniversal;
 
-namespace UnityEditor.Rendering.ZRendering.NPR
+namespace UnityEditor.Rendering.ZUniversal
 {
     /// <summary>
     /// Editor script for a <c>UniversalRendererData</c> class.
     /// </summary>
-    [CustomEditor(typeof(ZNPRRendererData), true)]
-    public class ZNPRRendererDataEditor : ZScriptableRendererDataEditor
+    [CustomEditor(typeof(ZUniversalRendererData), true)]
+    public class ZUniversalRendererDataEditor : ZScriptableRendererDataEditor
     {
         private static class Styles
         {
@@ -66,9 +66,9 @@ namespace UnityEditor.Rendering.ZRendering.NPR
 
                 if (GUILayout.Button("Reload All"))
                 {
-                    var resources = target as ZNPRRendererData;
+                    var resources = target as ZUniversalRendererData;
                     resources.shaders = null;
-                    ResourceReloader.ReloadAllNullIn(target, ZNPRRenderPipelineAsset.packagePath);
+                    ResourceReloader.ReloadAllNullIn(target, ZUniversalRenderPipelineAsset.packagePath);
                 }
             }
         }

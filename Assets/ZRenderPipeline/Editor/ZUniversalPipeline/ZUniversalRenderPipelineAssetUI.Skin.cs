@@ -1,11 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering.ZRendering;
+using UnityEngine.Rendering.ZPipeline;
 
-namespace UnityEditor.Rendering.ZRendering.NPR
+namespace UnityEditor.Rendering.ZUniversal
 {
-    internal partial class ZNPRRenderPipelineAssetUI
+    internal partial class ZUniversalRenderPipelineAssetUI
     {
         internal static class Styles
         {

@@ -1,10 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering.ZRendering;
-using UnityEngine.Rendering.ZRendering.NPR;
+using UnityEngine.Rendering.ZPipeline.ZUniversal;
 
-namespace UnityEditor.Rendering.ZRendering.Internal
+namespace UnityEditor.Rendering.ZUniversal.Internal
 {
     /// <summary>
     /// Contains a database of built-in resource GUIds. These are used to load built-in resource files.
@@ -18,7 +15,7 @@ namespace UnityEditor.Rendering.ZRendering.Internal
     }
 }
 
-namespace UnityEditor.Rendering.ZRendering
+namespace UnityEditor.Rendering.ZUniversal
 {
     public static partial class ZEditorUtils
     {
@@ -34,7 +31,7 @@ namespace UnityEditor.Rendering.ZRendering
         {
             CoreEditorUtils.DrawFixMeBox(message, type, "Open", () =>
             {
-                Selection.activeObject = ZNPRRenderPipeline.asset.scriptableRendererData;
+                Selection.activeObject = ZUniversalRenderPipeline.asset.scriptableRendererData;
                 GUIUtility.ExitGUI();
             });
         }

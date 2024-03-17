@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-namespace UnityEngine.Rendering.ZRendering
+namespace UnityEngine.Rendering.ZPipeline
 {
     [ExcludeFromPreset]
     public abstract class ZScriptableRendererPass : ScriptableObject, IDisposable

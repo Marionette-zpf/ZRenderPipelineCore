@@ -2,22 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace UnityEngine.Rendering.ZRendering.NPR
+namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 {
 
-    public sealed partial class ZNPRRenderPipeline : ZRenderPipeline
+    public sealed partial class ZUniversalRenderPipeline : ZRenderPipeline
     {
      
         /// <summary>
         /// Returns the current render pipeline asset for the current quality setting.
         /// If no render pipeline asset is assigned in QualitySettings, then returns the one assigned in GraphicsSettings.
         /// </summary>
-        public static ZNPRRenderPipelineAsset asset
+        public static ZUniversalRenderPipelineAsset asset
         {
-            get => GraphicsSettings.currentRenderPipeline as ZNPRRenderPipelineAsset;
+            get => GraphicsSettings.currentRenderPipeline as ZUniversalRenderPipelineAsset;
         }
 
-        public ZNPRRenderPipeline(ZNPRRenderPipelineAsset asset)
+        public ZUniversalRenderPipeline(ZUniversalRenderPipelineAsset asset)
         {
             //asset.scriptableRendererData.rendererFeatures
         }

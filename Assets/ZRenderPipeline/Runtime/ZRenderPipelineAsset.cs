@@ -1,4 +1,4 @@
-namespace UnityEngine.Rendering.ZRendering
+namespace UnityEngine.Rendering.ZPipeline
 {
 
 

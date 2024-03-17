@@ -1,13 +1,13 @@
 using System;
 
-namespace UnityEngine.Rendering.ZRendering.NPR
+namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 {
     /// <summary>
     /// Class containing shader and texture resources needed in URP.
     /// </summary>
     /// <seealso cref="Shader"/>
     /// <seealso cref="Material"/>
-    public class ZNPRRenderPipelineEditorResources : ScriptableObject
+    public class ZUniversalRenderPipelineEditorResources : ScriptableObject
     {
         /// <summary>
         /// Class containing shader resources used in URP.
@@ -110,7 +110,7 @@ namespace UnityEngine.Rendering.ZRendering.NPR
     }
 
 #if UNITY_EDITOR
-    [UnityEditor.CustomEditor(typeof(ZNPRRenderPipelineEditorResources), true)]
+    [UnityEditor.CustomEditor(typeof(ZUniversalRenderPipelineEditorResources), true)]
     class ZNPRRenderPipelineEditorResourcesEditor : UnityEditor.Editor
     {
         /// <inheritdoc/>
@@ -121,10 +121,10 @@ namespace UnityEngine.Rendering.ZRendering.NPR
             // Add a "Reload All" button in inspector when we are in developer's mode
             if (UnityEditor.EditorPrefs.GetBool("DeveloperMode") && GUILayout.Button("Reload All"))
             {
-                var resources = target as ZNPRRenderPipelineEditorResources;
+                var resources = target as ZUniversalRenderPipelineEditorResources;
                 resources.materials = null;
                 resources.shaders = null;
-                ResourceReloader.ReloadAllNullIn(target, ZNPRRenderPipelineAsset.packagePath);
+                ResourceReloader.ReloadAllNullIn(target, ZUniversalRenderPipelineAsset.packagePath);
             }
         }
     }

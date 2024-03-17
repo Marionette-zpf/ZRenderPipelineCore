@@ -1,7 +1,7 @@
 
 using System;
 
-namespace UnityEngine.Rendering.ZRendering
+namespace UnityEngine.Rendering.ZPipeline
 {
     /// <summary>
     ///   <para>Prevents <c>ScriptableRendererFeatures</c> of same type to be added more than once to a Scriptable Renderer.</para>

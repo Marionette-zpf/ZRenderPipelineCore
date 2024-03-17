@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace UnityEngine.Rendering.ZRendering.NPR
+namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 {
-    public sealed partial class ZNPRRenderPipeline
+    public sealed partial class ZUniversalRenderPipeline
     {
         /// <summary>
         /// The shader tag used in the Universal Render Pipeline (URP)

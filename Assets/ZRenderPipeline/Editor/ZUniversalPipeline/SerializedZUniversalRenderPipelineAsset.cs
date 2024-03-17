@@ -1,8 +1,8 @@
-using UnityEngine.Rendering.ZRendering.NPR;
+using UnityEngine.Rendering.ZPipeline.ZUniversal;
 
-namespace UnityEditor.Rendering.ZRendering.NPR
+namespace UnityEditor.Rendering.ZUniversal
 {
-    public class SerializedZNPRRenderPipelineAsset
+    public class SerializedZUniversalRenderPipelineAsset
     {
         public SerializedProperty hdr { get; }
         public SerializedProperty hdrColorBufferPrecisionProp { get; }
@@ -11,14 +11,14 @@ namespace UnityEditor.Rendering.ZRendering.NPR
         public SerializedProperty supportsDynamicBatching { get; }
         public SerializedProperty useFastSRGBLinearConversion { get; }
 
-        public ZNPRRenderPipelineAsset asset { get; }
+        public ZUniversalRenderPipelineAsset asset { get; }
         public SerializedObject serializedObject { get; }
 
         public EditorPrefBoolFlags<ZEditorUtils.Unit> state;
 
-        public SerializedZNPRRenderPipelineAsset(SerializedObject serializedObject)
+        public SerializedZUniversalRenderPipelineAsset(SerializedObject serializedObject)
         {
-            asset = serializedObject.targetObject as ZNPRRenderPipelineAsset;
+            asset = serializedObject.targetObject as ZUniversalRenderPipelineAsset;
             this.serializedObject = serializedObject;
 
             hdr = serializedObject.FindProperty("m_SupportsHDR");

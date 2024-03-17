@@ -4,10 +4,10 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.ZRendering;
+using UnityEngine.Rendering.ZPipeline;
 using Object = UnityEngine.Object;
 
-namespace UnityEditor.Rendering.ZRendering
+namespace UnityEditor.Rendering.ZUniversal
 {
     /// <summary>
     /// Editor script for a <c>ScriptableRendererData</c> class.

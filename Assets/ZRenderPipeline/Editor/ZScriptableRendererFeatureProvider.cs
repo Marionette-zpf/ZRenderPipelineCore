@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering.ZRendering;
+using UnityEngine.Rendering.ZPipeline;
 
 
-namespace UnityEditor.Rendering.ZRendering
+namespace UnityEditor.Rendering.ZUniversal
 {
     public class ZScriptableRendererFeatureProvider : FilterWindow.IProvider
     {

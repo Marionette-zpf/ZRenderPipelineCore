@@ -1,15 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.ZRendering;
-using UnityEngine.Rendering.ZRendering.NPR;
+using UnityEngine.Rendering.ZPipeline.ZUniversal;
 
-namespace UnityEditor.Rendering.ZRendering.NPR
+namespace UnityEditor.Rendering.ZUniversal
 {
-    using CED = CoreEditorDrawer<SerializedZNPRRenderPipelineAsset>;
+    using CED = CoreEditorDrawer<SerializedZUniversalRenderPipelineAsset>;
 
-    internal partial class ZNPRRenderPipelineAssetUI
+    internal partial class ZUniversalRenderPipelineAssetUI
     {
         enum Expandable
         {
@@ -32,12 +28,12 @@ namespace UnityEditor.Rendering.ZRendering.NPR
             Quality = 1 << 5,
         }
 
-        internal static void RegisterEditor(ZNPRRenderPipelineAssetEditor editor)
+        internal static void RegisterEditor(ZUniversalRenderPipelineAssetEditor editor)
         {
             k_AdditionalPropertiesState.RegisterEditor(editor);
         }
 
-        internal static void UnregisterEditor(ZNPRRenderPipelineAssetEditor editor)
+        internal static void UnregisterEditor(ZUniversalRenderPipelineAssetEditor editor)
         {
             k_AdditionalPropertiesState.UnregisterEditor(editor);
         }
@@ -53,7 +49,7 @@ namespace UnityEditor.Rendering.ZRendering.NPR
 
 
 
-        static readonly ExpandedState<Expandable, ZNPRRenderPipelineAsset> k_ExpandedState = new(Expandable.Rendering, "ZNPR");
+        static readonly ExpandedState<Expandable, ZUniversalRenderPipelineAsset> k_ExpandedState = new(Expandable.Rendering, "ZNPR");
         readonly static AdditionalPropertiesState<ExpandableAdditional, Light> k_AdditionalPropertiesState = new(0, "ZNPR");
 
         public static readonly CED.IDrawer Inspector = CED.Group(
@@ -61,9 +57,9 @@ namespace UnityEditor.Rendering.ZRendering.NPR
             CED.FoldoutGroup(Styles.qualitySettingsText, Expandable.Quality, k_ExpandedState, DrawQuality)
         );
 
-        static void DrawRendering(SerializedZNPRRenderPipelineAsset serialized, Editor ownerEditor)
+        static void DrawRendering(SerializedZUniversalRenderPipelineAsset serialized, Editor ownerEditor)
         {
-            if (ownerEditor is ZNPRRenderPipelineAssetEditor urpAssetEditor)
+            if (ownerEditor is ZUniversalRenderPipelineAssetEditor urpAssetEditor)
             {
                 EditorGUILayout.Space();
                 urpAssetEditor.rendererList.DoLayoutList();
@@ -75,17 +71,17 @@ namespace UnityEditor.Rendering.ZRendering.NPR
             }
         }
 
-        static void DrawRenderingAdditional(SerializedZNPRRenderPipelineAsset serialized, Editor ownerEditor)
+        static void DrawRenderingAdditional(SerializedZUniversalRenderPipelineAsset serialized, Editor ownerEditor)
         {
             EditorGUILayout.PropertyField(serialized.srpBatcher, Styles.srpBatcher);
             EditorGUILayout.PropertyField(serialized.supportsDynamicBatching, Styles.dynamicBatching);
         }
 
-        static void DrawQuality(SerializedZNPRRenderPipelineAsset serialized, Editor ownerEditor)
+        static void DrawQuality(SerializedZUniversalRenderPipelineAsset serialized, Editor ownerEditor)
         {
             //DrawHDR(serialized, ownerEditor);
 
-            serialized.renderScale.floatValue = EditorGUILayout.Slider(Styles.renderScaleText, serialized.renderScale.floatValue, ZNPRRenderPipeline.minRenderScale, ZNPRRenderPipeline.maxRenderScale);
+            serialized.renderScale.floatValue = EditorGUILayout.Slider(Styles.renderScaleText, serialized.renderScale.floatValue, ZUniversalRenderPipeline.minRenderScale, ZUniversalRenderPipeline.maxRenderScale);
         }
     }
 

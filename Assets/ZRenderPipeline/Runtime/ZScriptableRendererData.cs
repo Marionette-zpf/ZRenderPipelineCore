@@ -8,7 +8,7 @@ using UnityEditor;
 using ShaderKeywordFilter = UnityEditor.ShaderKeywordFilter;
 #endif
 
-namespace UnityEngine.Rendering.ZRendering
+namespace UnityEngine.Rendering.ZPipeline
 {
     public abstract class ZScriptableRendererData : ScriptableObject
     {

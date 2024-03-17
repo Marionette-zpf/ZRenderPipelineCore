@@ -1,6 +1,6 @@
 using System;
 
-namespace UnityEngine.Rendering.ZRendering
+namespace UnityEngine.Rendering.ZPipeline
 {
     public abstract class ZScriptableRenderer : IDisposable
     {

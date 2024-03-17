@@ -9,10 +9,10 @@ using UnityEditorInternal;
 using ShaderKeywordFilter = UnityEditor.ShaderKeywordFilter;
 #endif
 
-namespace UnityEngine.Rendering.ZRendering.NPR
+namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 {
     [ExcludeFromPreset]
-    public class ZNPRRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver
+    public class ZUniversalRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver
     {
         Shader m_DefaultShader;
         ZScriptableRenderer[] m_Renderers = new ZScriptableRenderer[1];
@@ -44,19 +44,19 @@ namespace UnityEngine.Rendering.ZRendering.NPR
 
 #if UNITY_EDITOR
         [NonSerialized]
-        internal ZNPRRenderPipelineEditorResources m_EditorResourcesAsset;
+        internal ZUniversalRenderPipelineEditorResources m_EditorResourcesAsset;
 
         public static readonly string packagePath = string.Empty;
         public static readonly string editorResourcesGUID = string.Empty;
 
-        public static ZNPRRenderPipelineAsset Create(ZScriptableRendererData rendererData = null)
+        public static ZUniversalRenderPipelineAsset Create(ZScriptableRendererData rendererData = null)
         {
             // Create Universal RP Asset
-            var instance = CreateInstance<ZNPRRenderPipelineAsset>();
+            var instance = CreateInstance<ZUniversalRenderPipelineAsset>();
             if (rendererData != null)
                 instance.m_RendererDataList[0] = rendererData;
             else
-                instance.m_RendererDataList[0] = CreateInstance<ZNPRRendererData>();
+                instance.m_RendererDataList[0] = CreateInstance<ZUniversalRendererData>();
 
             // Initialize default Renderer
             instance.m_EditorResourcesAsset = instance.editorResources;
@@ -105,13 +105,13 @@ namespace UnityEngine.Rendering.ZRendering.NPR
                 case ZRendererType.ZNRPRenderer:
                 default:
                     {
-                        var rendererData = CreateInstance<ZNPRRendererData>();
+                        var rendererData = CreateInstance<ZUniversalRendererData>();
                         return rendererData;
                     }
             }
         }
 
-        ZNPRRenderPipelineEditorResources editorResources
+        ZUniversalRenderPipelineEditorResources editorResources
         {
             get
             {
@@ -120,7 +120,7 @@ namespace UnityEngine.Rendering.ZRendering.NPR
 
                 string resourcePath = AssetDatabase.GUIDToAssetPath(editorResourcesGUID);
                 var objs = InternalEditorUtility.LoadSerializedFileAndForget(resourcePath);
-                m_EditorResourcesAsset = objs != null && objs.Length > 0 ? objs.First() as ZNPRRenderPipelineEditorResources : null;
+                m_EditorResourcesAsset = objs != null && objs.Length > 0 ? objs.First() as ZUniversalRenderPipelineEditorResources : null;
                 return m_EditorResourcesAsset;
             }
         }
@@ -145,13 +145,13 @@ namespace UnityEngine.Rendering.ZRendering.NPR
                     return null;
 
                 Debug.LogError(
-                    $"Default Renderer is missing, make sure there is a Renderer assigned as the default on the current ZNPR RP asset:{ZNPRRenderPipeline.asset.name}",
+                    $"Default Renderer is missing, make sure there is a Renderer assigned as the default on the current ZNPR RP asset:{ZUniversalRenderPipeline.asset.name}",
                     this);
                 return null;
             }
 
             DestroyRenderers();
-            var pipeline = new ZNPRRenderPipeline(this);
+            var pipeline = new ZUniversalRenderPipeline(this);
             CreateRenderers();
 
 
@@ -645,7 +645,7 @@ namespace UnityEngine.Rendering.ZRendering.NPR
 
         float ValidateRenderScale(float value)
         {
-            return Mathf.Max(ZNPRRenderPipeline.minRenderScale, Mathf.Min(value, ZNPRRenderPipeline.maxRenderScale));
+            return Mathf.Max(ZUniversalRenderPipeline.minRenderScale, Mathf.Min(value, ZUniversalRenderPipeline.maxRenderScale));
         }
 
         /// <summary>
