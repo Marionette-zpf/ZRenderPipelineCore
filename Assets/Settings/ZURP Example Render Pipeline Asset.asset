@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1631b6fa1c1c6224ea3cd0b3ece852dd, type: 3}
+  m_Name: ZURP Example Render Pipeline Asset
+  m_EditorClassIdentifier: 
+  k_AssetVersion: 11
+  k_AssetPreviousVersion: 11
+  m_RendererDataList:
+  - {fileID: 11400000, guid: 261fae3428c6f8f439b4ff87ece202e5, type: 2}
+  m_DefaultRendererIndex: 0
+  m_SupportsHDR: 1
+  m_HDRColorBufferPrecision: 0
+  m_RenderScale: 1
+  m_UseFastSRGBLinearConversion: 0
+  m_UseSRPBatcher: 1
+  m_SupportsDynamicBatching: 0

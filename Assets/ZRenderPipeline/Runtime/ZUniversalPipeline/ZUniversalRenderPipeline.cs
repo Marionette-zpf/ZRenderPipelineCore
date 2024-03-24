@@ -17,20 +17,45 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             get => GraphicsSettings.currentRenderPipeline as ZUniversalRenderPipelineAsset;
         }
 
+        private ZUniversalRenderPipelineAsset m_PipelineAsset;
+
         public ZUniversalRenderPipeline(ZUniversalRenderPipelineAsset asset)
         {
-            //asset.scriptableRendererData.rendererFeatures
+            m_PipelineAsset = asset;
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
+            if (m_PipelineAsset != asset)
+                throw new System.Exception("error.");
 
+            for (int i = 0; i < cameras.Length; i++)
+            {
+                var renderer = asset.GetRenderer(0) as ZUniversalRenderer;
+                renderer.CameraRendering(context, cameras[i]);
+            }
         }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
         }
+    }
+
+    public static class ZRenderPipelineExt
+    {
+        public static void ExecuteAndClear(this ScriptableRenderContext @this, CommandBuffer cmd)
+        {
+            @this.ExecuteCommandBuffer(cmd);
+
+            cmd.Clear();
+        }
+
+        public static float ComputeLuminance(this Color color)
+        {
+            return ColorUtils.Luminance(color);
+        }
+
     }
 }
 

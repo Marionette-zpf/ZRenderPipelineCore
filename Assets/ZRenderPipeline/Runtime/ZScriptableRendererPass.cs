@@ -9,6 +9,14 @@ namespace UnityEngine.Rendering.ZPipeline
     [ExcludeFromPreset]
     public abstract class ZScriptableRendererPass : ScriptableObject, IDisposable
     {
+        [SerializeField, ZCameraType]
+        private int m_CameraMask = 7;
+
+        public virtual string PassName => this.GetType().Name;
+
+        public int CameraMaks => m_CameraMask;
+
+
         [SerializeField, HideInInspector] private bool m_Active = true;
         /// <summary>
         /// Returns the state of the ScriptableRenderFeature (true: the feature is active, false: the feature is inactive). Use the method ScriptableRenderFeature.SetActive to change the value of this variable.
@@ -18,7 +26,7 @@ namespace UnityEngine.Rendering.ZPipeline
         /// <summary>
         /// Initializes this feature's resources. This is called every time serialization happens.
         /// </summary>
-        public abstract void Create();
+        public virtual void Create() { }
 
         void OnEnable()
         {
@@ -57,6 +65,52 @@ namespace UnityEngine.Rendering.ZPipeline
         protected virtual void Dispose(bool disposing)
         { 
         }
+
+        public virtual bool IsValidPass()
+        {
+            return true;
+        }
+
+        public virtual void SetupRendererPass(CommandBuffer cmd, ref ZRenderingData renderingData) { }
+        public abstract void ExecuRendererPass(ScriptableRenderContext context, CommandBuffer cmd, ref ZRenderingData renderingData);
+        public virtual void OnFrameEnd(CommandBuffer cmd) { }
     }
 
+
+    public enum ZRenderView
+    {
+        None = 0,
+        Scene = 1,
+        Game = 2,
+        Preview = 4,
+    }
+
+
+    public sealed class ZCameraTypeAttribute : PropertyAttribute
+    {
+        public ZCameraTypeAttribute()
+        {
+
+        }
+    }
+
+#if UNITY_EDITOR
+
+    [UnityEditor.CustomPropertyDrawer(typeof(ZCameraTypeAttribute))]
+    public sealed class ZCameraTypeDrawer : UnityEditor.PropertyDrawer
+    {
+
+        static string[] g_CameraTypes = new string[] { "Game", "Scene", "Preview" }; 
+
+        public override void OnGUI(Rect position, UnityEditor.SerializedProperty property, GUIContent label)
+        {
+            property.intValue = UnityEditor.EditorGUILayout.MaskField("目标相机", property.intValue, g_CameraTypes);
+        }
+
+        public override float GetPropertyHeight(UnityEditor.SerializedProperty property, GUIContent label)
+        {
+            return base.GetPropertyHeight(property, label) - 15;
+        }
+    }
+#endif
 }
