@@ -9,6 +9,28 @@ namespace UnityEngine.Rendering.ZPipeline
     [ExcludeFromPreset]
     public abstract class ZScriptableRendererPass : ScriptableObject, IDisposable
     {
+
+        #region fields
+
+        #endregion
+
+        #region properties
+
+        #endregion
+
+        #region life cycle
+
+        #endregion
+
+        #region interface
+
+        #endregion
+
+        #region local method
+
+        #endregion
+
+
         [SerializeField, ZCameraType]
         private int m_CameraMask = 7;
 

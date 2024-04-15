@@ -1,5 +1,48 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7293408543206324250
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4735c4641b2dcfc4b9001bbd60700b38, type: 3}
+  m_Name: HizBuildPass
+  m_EditorClassIdentifier: 
+  m_CameraMask: 7
+  m_Active: 1
+  m_HizBuildComputer: {fileID: 7200000, guid: 98302209503cc1642b05f0e871c7e794, type: 3}
+--- !u!114 &-5173270272448446450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 683f963dc149dfd439e0cacd6eff4437, type: 3}
+  m_Name: DrawOutlinePass
+  m_EditorClassIdentifier: 
+  m_CameraMask: 7
+  m_Active: 1
+--- !u!114 &-4749219359000058277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cda257877de9c7e4a84497cd24420304, type: 3}
+  m_Name: DrawCharactersPass
+  m_EditorClassIdentifier: 
+  m_CameraMask: 7
+  m_Active: 1
 --- !u!114 &-3076414189594026311
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10,7 +53,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24eb2357208f2fe45aa95b0dc7d4d6c2, type: 3}
-  m_Name: DrawOpaquePass
+  m_Name: FinalBlit
   m_EditorClassIdentifier: 
   m_CameraMask: 7
   m_Active: 1
@@ -42,6 +85,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_CameraMask: 7
   m_Active: 1
+  m_RenderScale: 1
+--- !u!114 &-891045884330384655
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be75515596025894f899f670221daa27, type: 3}
+  m_Name: TAAStandalonePass
+  m_EditorClassIdentifier: 
+  m_CameraMask: 1
+  m_Active: 1
+  m_TemporalAAFilterSize: 1
+  m_TemporalAACatmullRom: 0
+  m_TaaComputer: {fileID: 7200000, guid: d579703cb975dba4fabd060b4a19c4ad, type: 3}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -57,12 +118,31 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: -2102839357490705840}
   - {fileID: -1956530867953023858}
+  - {fileID: 23305767174813415}
+  - {fileID: -7293408543206324250}
+  - {fileID: -4749219359000058277}
+  - {fileID: -5173270272448446450}
   - {fileID: 3338102168999553127}
   - {fileID: 6932375893739292350}
+  - {fileID: -891045884330384655}
   - {fileID: -3076414189594026311}
-  m_RendererFeatureMap: 504a0ee5be36d1e28ec492af8a01d9e467e82d973c52532ebec6cf6325bf3460b9de461798614ed5
+  m_RendererFeatureMap: 504a0ee5be36d1e28ec492af8a01d9e4e736acc578cc5200e6476374929bc89a5ba664ca276217be0e409fab18da34b867e82d973c52532ebec6cf6325bf3460f1e2e9397d5ea2f3b9de461798614ed5
   shaders:
     todo: todo
+--- !u!114 &23305767174813415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f7c307a34f52bb4289371a736075538, type: 3}
+  m_Name: BasePass
+  m_EditorClassIdentifier: 
+  m_CameraMask: 7
+  m_Active: 1
 --- !u!114 &3338102168999553127
 MonoBehaviour:
   m_ObjectHideFlags: 0

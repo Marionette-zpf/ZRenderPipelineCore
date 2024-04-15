@@ -2,10 +2,11 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 {
     public abstract class ZDrawObjectsPass : ZScriptableRendererPass
     {
-       
         protected abstract bool m_IsTransparent { get; }
 
         protected ShaderTagId[] m_LegacyShaderTagIds;
+
+        protected ShaderTagId m_ExtShaderTagId;
 
         protected DrawingSettings m_DreawingSettings;
         protected FilteringSettings m_FilteringSettings;
@@ -15,8 +16,15 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             m_DreawingSettings = new DrawingSettings();
             m_FilteringSettings = new FilteringSettings(m_IsTransparent ? RenderQueueRange.transparent : RenderQueueRange.opaque);
 
+            if (!string.IsNullOrEmpty(m_ExtShaderTagId.name))
+            {
+                m_DreawingSettings.SetShaderPassName(0, m_ExtShaderTagId);
+                return;
+            }
+
             m_LegacyShaderTagIds = new ShaderTagId[]
             {
+                new ShaderTagId("UniversalForward"),
                 new ShaderTagId("Always"),
                 new ShaderTagId("ForwardBase"),
                 new ShaderTagId("PrepassBase"),
@@ -25,10 +33,12 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
                 new ShaderTagId("VertexLM")
             };
 
+            int passIndex = 0;
 
             for (int i = 0; i < m_LegacyShaderTagIds.Length; i++)
             {
-                m_DreawingSettings.SetShaderPassName(i, m_LegacyShaderTagIds[i]);
+                m_DreawingSettings.SetShaderPassName(passIndex, m_LegacyShaderTagIds[i]);
+                passIndex++;
             }
         }
 

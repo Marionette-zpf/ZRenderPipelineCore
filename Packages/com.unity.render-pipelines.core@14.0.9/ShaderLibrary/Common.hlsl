@@ -898,6 +898,9 @@ float Length2(float3 v)
 }
 
 #ifndef BUILTIN_TARGET_API
+
+#define UNITY_POW4 1
+
 real Pow4(real x)
 {
     return (x * x) * (x * x);

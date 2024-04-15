@@ -1,0 +1,376 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain SKIP_TEMPERATURE=0 BLENDCOUNT=0
+#pragma kernel CSMain SKIP_TEMPERATURE=0 BLENDCOUNT=1
+#pragma kernel CSMain SKIP_TEMPERATURE=0 BLENDCOUNT=2
+#pragma kernel CSMain SKIP_TEMPERATURE=0 BLENDCOUNT=3
+#pragma kernel CSMain SKIP_TEMPERATURE=0 BLENDCOUNT=4
+#pragma kernel CSMain SKIP_TEMPERATURE=0 BLENDCOUNT=5
+#pragma kernel CSMain SKIP_TEMPERATURE=1 BLENDCOUNT=0
+#pragma kernel CSMain SKIP_TEMPERATURE=1 BLENDCOUNT=1
+#pragma kernel CSMain SKIP_TEMPERATURE=1 BLENDCOUNT=2
+#pragma kernel CSMain SKIP_TEMPERATURE=1 BLENDCOUNT=3
+#pragma kernel CSMain SKIP_TEMPERATURE=1 BLENDCOUNT=4
+#pragma kernel CSMain SKIP_TEMPERATURE=1 BLENDCOUNT=5
+
+#define THREADGROUP_SIZE 8
+
+#include "UE_ACES.hlsl"
+#include "UE_TonemapCommon.hlsl"
+#include "UE_PostProcessCommon.hlsl"
+
+Texture2D Textures_1;
+SamplerState samplerTextures_1;
+Texture2D Textures_2;
+SamplerState samplerTextures_2;
+Texture2D Textures_3;
+SamplerState samplerTextures_3;
+Texture2D Textures_4;
+SamplerState samplerTextures_4;
+
+float LUTWeights[5];
+float3  ColorScale;
+float4  OverlayColor;
+
+uint bIsTemperatureWhiteBalance;
+uint bUseMobileTonemapper;
+
+static const float LUTSize = 32;
+
+float WhiteTemp;
+float WhiteTint;
+
+float3 WhiteBalance( float3 LinearColor )
+{
+	float2 SrcWhiteDaylight = D_IlluminantChromaticity( WhiteTemp );
+	float2 SrcWhitePlankian = PlanckianLocusChromaticity( WhiteTemp );
+
+	float2 SrcWhite = WhiteTemp < 4000 ? SrcWhitePlankian : SrcWhiteDaylight;
+	float2 D65White = float2( 0.31270, 0.32900 );
+
+	{
+
+		float2 Isothermal = PlanckianIsothermal( WhiteTemp, WhiteTint ) - SrcWhitePlankian;
+		SrcWhite += Isothermal;
+	}
+
+	if (!bIsTemperatureWhiteBalance)
+	{
+		float2 Temp = SrcWhite;
+		SrcWhite = D65White;
+		D65White = Temp;
+	}
+
+	float3x3 WhiteBalanceMat = ChromaticAdaptation( SrcWhite, D65White );
+	WhiteBalanceMat = mul( XYZ_2_sRGB_MAT, mul( WhiteBalanceMat, sRGB_2_XYZ_MAT ) );
+
+	return mul( WhiteBalanceMat, LinearColor );
+}
+
+float4 ColorSaturation;
+float4 ColorContrast;
+float4 ColorGamma;
+float4 ColorGain;
+float4 ColorOffset;
+
+float4 ColorSaturationShadows;
+float4 ColorContrastShadows;
+float4 ColorGammaShadows;
+float4 ColorGainShadows;
+float4 ColorOffsetShadows;
+
+float4 ColorSaturationMidtones;
+float4 ColorContrastMidtones;
+float4 ColorGammaMidtones;
+float4 ColorGainMidtones;
+float4 ColorOffsetMidtones;
+
+float4 ColorSaturationHighlights;
+float4 ColorContrastHighlights;
+float4 ColorGammaHighlights;
+float4 ColorGainHighlights;
+float4 ColorOffsetHighlights;
+
+float ColorCorrectionShadowsMax;
+float ColorCorrectionHighlightsMin;
+
+float3 ColorCorrect( float3 WorkingColor,
+	float4 ColorSaturation,
+	float4 ColorContrast,
+	float4 ColorGamma,
+	float4 ColorGain,
+	float4 ColorOffset )
+{
+
+	float Luma = dot( WorkingColor, AP1_RGB2Y );
+	WorkingColor = max( 0, lerp( Luma.xxx, WorkingColor, ColorSaturation.xyz*ColorSaturation.w ) );
+	WorkingColor = pow( WorkingColor * (1.0 / 0.18), ColorContrast.xyz*ColorContrast.w ) * 0.18;
+	WorkingColor = pow( WorkingColor, 1.0 / (ColorGamma.xyz*ColorGamma.w) );
+	WorkingColor = WorkingColor * (ColorGain.xyz * ColorGain.w) + (ColorOffset.xyz + ColorOffset.w);
+	return WorkingColor;
+}
+
+
+float3 ColorCorrectAll( float3 WorkingColor )
+{
+	float Luma = dot( WorkingColor, AP1_RGB2Y );
+
+	float3 CCColorShadows = ColorCorrect(WorkingColor,
+		ColorSaturationShadows*ColorSaturation,
+		ColorContrastShadows*ColorContrast,
+		ColorGammaShadows*ColorGamma,
+		ColorGainShadows*ColorGain,
+		ColorOffsetShadows+ColorOffset);
+
+	float CCWeightShadows = 1- smoothstep(0, ColorCorrectionShadowsMax, Luma);
+
+
+	float3 CCColorHighlights = ColorCorrect(WorkingColor,
+		ColorSaturationHighlights*ColorSaturation,
+		ColorContrastHighlights*ColorContrast,
+		ColorGammaHighlights*ColorGamma,
+		ColorGainHighlights*ColorGain,
+		ColorOffsetHighlights+ColorOffset);
+
+	float CCWeightHighlights = smoothstep(ColorCorrectionHighlightsMin, 1, Luma);
+
+
+	float3 CCColorMidtones = ColorCorrect(WorkingColor,
+		ColorSaturationMidtones*ColorSaturation,
+		ColorContrastMidtones*ColorContrast,
+		ColorGammaMidtones*ColorGamma,
+		ColorGainMidtones*ColorGain,
+		ColorOffsetMidtones+ColorOffset);
+
+	float CCWeightMidtones = 1 - CCWeightShadows - CCWeightHighlights;
+
+
+	float3 WorkingColorSMH = CCColorShadows*CCWeightShadows + CCColorMidtones*CCWeightMidtones + CCColorHighlights*CCWeightHighlights;
+
+	return WorkingColorSMH;
+}
+
+//uint OutputDevice;
+//uint OutputGamut;
+
+#define OutputDevice 0
+#define OutputGamut 0
+
+uint GetOutputDevice()
+{
+	return OutputDevice;
+}
+
+float BlueCorrection;
+float ExpandGamut;
+float ToneCurveAmount;
+
+float4 CombineLUTsCommon(float2 InUV, uint InLayerIndex)
+{
+	float4 Neutral;
+	{
+		float2 UV = InUV - float2(0.5f / LUTSize, 0.5f / LUTSize);
+
+		Neutral = float4(UV * LUTSize / (LUTSize - 1), InLayerIndex / (LUTSize - 1), 0);
+	}
+
+	float4 OutColor = 0;
+
+	const float3x3 sRGB_2_AP1 = mul( XYZ_2_AP1_MAT, mul( D65_2_D60_CAT, sRGB_2_XYZ_MAT ) );
+	const float3x3 AP1_2_sRGB = mul( XYZ_2_sRGB_MAT, mul( D60_2_D65_CAT, AP1_2_XYZ_MAT ) );
+
+	const float3x3 AP0_2_AP1 = mul( XYZ_2_AP1_MAT, AP0_2_XYZ_MAT );
+	const float3x3 AP1_2_AP0 = mul( XYZ_2_AP0_MAT, AP1_2_XYZ_MAT );
+
+	const float3x3 AP1_2_Output = OuputGamutMappingMatrix( OutputGamut );
+
+	float3 LUTEncodedColor = Neutral.rgb;
+	float3 LinearColor;
+
+	if (GetOutputDevice() >= 3)
+	{
+		LinearColor = ST2084ToLinear(LUTEncodedColor) * LinearToNitsScaleInverse;
+	}
+	else
+	{
+		LinearColor = LogToLin(LUTEncodedColor) - LogToLin(0);
+	}
+
+#if !SKIP_TEMPERATURE
+	float3 BalancedColor = WhiteBalance( LinearColor );
+#else
+	float3 BalancedColor = LinearColor;
+#endif
+
+	float3 ColorAP1 = mul( sRGB_2_AP1, BalancedColor );
+
+    if (!bUseMobileTonemapper)
+	{
+		float LumaAP1 = dot( ColorAP1, AP1_RGB2Y );
+		float3 ChromaAP1 = ColorAP1 / LumaAP1;
+
+		float ChromaDistSqr = dot( ChromaAP1 - 1, ChromaAP1 - 1 );
+		float ExpandAmount = ( 1 - exp2( -4 * ChromaDistSqr ) ) * ( 1 - exp2( -4 * ExpandGamut * LumaAP1*LumaAP1 ) );
+
+		const float3x3 Wide_2_XYZ_MAT =
+		{
+			0.5441691, 0.2395926, 0.1666943,
+			0.2394656, 0.7021530, 0.0583814,
+			-0.0023439, 0.0361834, 1.0552183,
+		};
+
+		const float3x3 Wide_2_AP1 = mul( XYZ_2_AP1_MAT, Wide_2_XYZ_MAT );
+		const float3x3 ExpandMat = mul( Wide_2_AP1, AP1_2_sRGB );
+
+		float3 ColorExpand = mul( ExpandMat, ColorAP1 );
+		ColorAP1 = lerp( ColorAP1, ColorExpand, ExpandAmount );
+	}
+
+	ColorAP1 = ColorCorrectAll( ColorAP1 );
+
+	float3 GradedColor = mul( AP1_2_sRGB, ColorAP1 );
+
+	const float3x3 BlueCorrect =
+	{
+		0.9404372683, -0.0183068787, 0.0778696104,
+		0.0083786969, 0.8286599939, 0.1629613092,
+		0.0005471261, -0.0008833746, 1.0003362486
+	};
+	const float3x3 BlueCorrectInv =
+	{
+		1.06318, 0.0233956, -0.0865726,
+		-0.0106337, 1.20632, -0.19569,
+		-0.000590887, 0.00105248, 0.999538
+	};
+
+	const float3x3 BlueCorrectAP1 = mul( AP0_2_AP1, mul( BlueCorrect, AP1_2_AP0 ) );
+	const float3x3 BlueCorrectInvAP1 = mul( AP0_2_AP1, mul( BlueCorrectInv, AP1_2_AP0 ) );
+
+	ColorAP1 = lerp( ColorAP1, mul( BlueCorrectAP1, ColorAP1 ), BlueCorrection );
+
+	float3 ToneMappedColorAP1 = FilmToneMap( ColorAP1 );
+
+	ColorAP1 = lerp(ColorAP1, ToneMappedColorAP1, ToneCurveAmount);
+	ColorAP1 = lerp(ColorAP1, mul( BlueCorrectInvAP1, ColorAP1 ), BlueCorrection );
+
+	float3 FilmColor = max(0, mul( AP1_2_sRGB, ColorAP1 ));
+
+	[branch]
+	if (bUseMobileTonemapper)
+	{
+
+		FilmColor = FilmPostProcess(GradedColor);
+	}
+
+#if BLENDCOUNT > 1
+	{
+		// Legacy LDR LUT color grading
+
+		// FIXME 
+		// LUTs are in sRGB transfer function space
+		// LUTs applied in sRGB gamut as well
+		half3 GammaColor = LinearToSrgb( saturate( FilmColor ) );
+
+		float3 UVW = GammaColor * (15.0 / 16.0) + (0.5f / 16.0);
+
+		GammaColor = LUTWeights[0] * GammaColor;
+
+		// BLENDCOUNT is the number of LUT that are blended together including the neutral one
+	#if BLENDCOUNT >= 2
+		GammaColor += LUTWeights[1] * UnwrappedTexture3DSample( Textures_1, samplerTextures_1, UVW, 16 ).rgb;
+	#endif
+
+	#if BLENDCOUNT >= 3
+		GammaColor += LUTWeights[2] * UnwrappedTexture3DSample( Textures_2, samplerTextures_2, UVW, 16 ).rgb;
+	#endif
+
+	#if BLENDCOUNT >= 4
+		GammaColor += LUTWeights[3] * UnwrappedTexture3DSample( Textures_3, samplerTextures_3, UVW, 16 ).rgb;
+	#endif
+
+	#if BLENDCOUNT >= 5
+		GammaColor += LUTWeights[4] * UnwrappedTexture3DSample( Textures_4, samplerTextures_4, UVW, 16 ).rgb;
+	#endif
+
+		// Back to linear space, AP1 gamut
+		FilmColor =  sRGBToLinear( GammaColor );
+	}
+#endif
+
+
+	FilmColor = ColorCorrection( FilmColor );
+
+	float3 FilmColorNoGamma = lerp( FilmColor * ColorScale, OverlayColor.rgb, OverlayColor.a );
+
+	GradedColor = lerp(GradedColor * ColorScale, OverlayColor.rgb, OverlayColor.a);
+	FilmColor = pow( max(0, FilmColorNoGamma), InverseGamma.y );
+
+	float3  OutDeviceColor = 0;
+
+	[branch]
+	if( GetOutputDevice() == 0 )
+	{
+		float3 OutputGamutColor = FilmColor;
+
+		OutDeviceColor = LinearToSrgb( OutputGamutColor );
+	}
+	else if( GetOutputDevice() == 1 )
+	{
+		float3 OutputGamutColor = mul( AP1_2_Output, mul( sRGB_2_AP1, FilmColor ) );
+		OutDeviceColor = LinearTo709Branchless( OutputGamutColor );
+	}
+	else if( GetOutputDevice() == 3 || GetOutputDevice() == 5 )
+	{
+		float3 ODTColor = ACESOutputTransforms1000( GradedColor );
+
+		ODTColor = mul( AP1_2_Output, ODTColor );
+		OutDeviceColor = LinearToST2084( ODTColor );
+	}
+	else if( GetOutputDevice() == 4 || GetOutputDevice() == 6 )
+	{
+		float3 ODTColor = ACESOutputTransforms2000( GradedColor );
+
+		ODTColor = mul( AP1_2_Output, ODTColor );
+		OutDeviceColor = LinearToST2084( ODTColor );
+	}
+	else if( GetOutputDevice() == 7 )
+	{
+		float3 OutputGamutColor = mul( AP1_2_Output, mul( sRGB_2_AP1, GradedColor ) );
+		OutDeviceColor = LinearToST2084( OutputGamutColor );
+	}
+	else if( GetOutputDevice() == 8 )
+	{
+		OutDeviceColor = GradedColor;
+	}
+	else if (GetOutputDevice() == 9)
+	{
+		float3 OutputGamutColor = mul(AP1_2_Output, mul(sRGB_2_AP1, FilmColorNoGamma));
+		OutDeviceColor = OutputGamutColor;
+	}
+	else
+	{
+		float3 OutputGamutColor = mul( AP1_2_Output, mul( sRGB_2_AP1, FilmColor ) );
+		OutDeviceColor = pow( abs( OutputGamutColor), InverseGamma.z );
+	}
+
+	OutColor.rgb = OutDeviceColor / 1.05;
+	OutColor.a = 0;
+
+	return OutColor;
+}
+
+float4 OutputExtentInverse;
+
+RWTexture3D<float4> RWOutputTexture;
+
+[numthreads(THREADGROUP_SIZE, THREADGROUP_SIZE, THREADGROUP_SIZE)]
+void CSMain (uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	float2 UV = ((float2)DispatchThreadId.xy + 0.5f) * OutputExtentInverse.zw;
+	uint LayerIndex = DispatchThreadId.z;
+	
+	float4 OutColor = CombineLUTsCommon(UV, LayerIndex);
+
+	uint3 PixelPos = DispatchThreadId;
+
+	RWOutputTexture[PixelPos] = OutColor;
+}

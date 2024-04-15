@@ -48,6 +48,9 @@ namespace UnityEngine.Rendering.ZPipeline
 
         public int cameraMask;
 
+        public RenderTextureDescriptor cameraColorDesc;
+        public RenderTextureDescriptor cameraDepthDesc;
+
         public bool IsSceneCamera => camera.cameraType == CameraType.SceneView;
         public bool IsGameCamera => camera.cameraType == CameraType.Game;
         public bool IsPreviewCamera => camera.cameraType == CameraType.Preview;

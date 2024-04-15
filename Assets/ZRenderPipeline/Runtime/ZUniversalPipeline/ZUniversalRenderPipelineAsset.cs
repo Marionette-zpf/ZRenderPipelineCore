@@ -39,7 +39,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
         // Advanced settings
         [SerializeField] bool m_UseSRPBatcher = true;
-        [SerializeField] bool m_SupportsDynamicBatching = false;
+        //[SerializeField] bool m_SupportsDynamicBatching = false;
 
 
 #if UNITY_EDITOR
