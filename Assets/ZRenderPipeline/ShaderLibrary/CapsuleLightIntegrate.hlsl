@@ -1,7 +1,7 @@
 #ifndef Z_RENDER_PIPELINE_CAPSULE_LIGHT_INTEGRATE_INCLUDE
 #define Z_RENDER_PIPELINE_CAPSULE_LIGHT_INTEGRATE_INCLUDE
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/CapsuleLight.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/CapsuleLight.hlsl"
 
 Texture2D DummyRectLightTextureForCapsuleCompilerWarning;
 

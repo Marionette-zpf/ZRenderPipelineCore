@@ -6,10 +6,10 @@
 #define LIGHT_SOURCE_SHAPE 0
 #define USE_HAIR_COMPLEX_TRANSMITTANCE 0
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/Common.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/DeferredShadingCommon.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/DeferredLightingCommon.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/IESLightProfilesCommon.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/Common.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/DeferredShadingCommon.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/DeferredLightingCommon.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/IESLightProfilesCommon.hlsl"
 
 struct FInputParams
 {

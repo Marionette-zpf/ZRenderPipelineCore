@@ -37,6 +37,26 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
         public override void ExecuRendererPass(ScriptableRenderContext context, CommandBuffer cmd, ref ZRenderingData renderingData)
         {
+            var Camera = renderingData.camera;
+            var CurProjectionMatrix = m_JitterProjMatrix != Matrix4x4.identity ? m_JitterProjMatrix : m_ProjMatrix;
+
+            var ProjMat = CurProjectionMatrix;
+            ProjMat[0, 2] = -ProjMat[0, 2];
+            ProjMat[1, 2] = -ProjMat[1, 2];
+            ProjMat[2, 2] = -ProjMat[2, 2];
+            ProjMat[3, 2] = -ProjMat[3, 2];
+
+            var ProjZMat = Matrix4x4.identity;
+            ProjZMat[2, 2] = ProjMat[2, 2];
+            ProjZMat[2, 3] = ProjMat[2, 3];
+
+            ProjZMat[3, 2] = 1.0f;
+            ProjZMat[3, 3] = 0.0f;
+
+
+            var ViewProject = ProjMat * Camera.transform.worldToLocalMatrix;
+            var ScreenToWorldMatrix = ViewProject.inverse * ProjZMat;
+
             // cal params.
             UpdateZbufferParams(renderingData.camera);
 
@@ -44,7 +64,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             cmd.SetGlobalVector(ZUniversalShaderContents.ZBufferParams, m_ZBufferParams);
             cmd.SetGlobalVector(ZUniversalShaderContents.WorldSpaceCameraPos, renderingData.camera.transform.position);
 
-            cmd.SetViewProjectionMatrices(m_ViewMatrix, m_JitterProjMatrix != Matrix4x4.identity ? m_JitterProjMatrix : m_ProjMatrix);
+            cmd.SetViewProjectionMatrices(m_ViewMatrix, CurProjectionMatrix);
 
             // set global matrixs.
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_ViewMatrix, m_ViewMatrix);
@@ -53,6 +73,9 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_PreViewMatrix, m_PreViewMatrix);
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_PreProjMatrix, m_PreProjMatrix);
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_PreJitterProjMatrix, m_PreJitterProjMatrix);
+
+            cmd.SetGlobalMatrix(ZUniversalShaderContents.M_ScreenToWorldMatrix, ScreenToWorldMatrix);
+            cmd.SetGlobalMatrix(ZUniversalShaderContents.M_ScreenToTranslatedWorld, Matrix4x4.Translate(-Camera.transform.position) * ScreenToWorldMatrix);
 
             // set global vectors.
             cmd.SetGlobalVector(ZUniversalShaderContents.V_ScreenParams, new Vector4(renderingData.cameraColorDesc.width, renderingData.cameraColorDesc.height, 1.0f / renderingData.cameraColorDesc.width, 1.0f / renderingData.cameraColorDesc.height));
@@ -109,28 +132,31 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             }
         }
         #endregion
+    }
 
-        public static class ZUniversalShaderContents
-        {
-            // matrixs.
-            public static int M_ViewMatrix          = Shader.PropertyToID("_M_ViewMatrix");
-            public static int M_ProjMatrix          = Shader.PropertyToID("_M_ProjMatrix");
-            public static int M_JitterProjMatrix    = Shader.PropertyToID("_M_JitterProjMatrix");
-            public static int M_PreViewMatrix       = Shader.PropertyToID("_M_PreViewMatrix");
-            public static int M_PreProjMatrix       = Shader.PropertyToID("_M_PreProjMatrix");
-            public static int M_PreJitterProjMatrix = Shader.PropertyToID("_M_PreJitterProjMatrix");
+    public static partial class ZUniversalShaderContents
+    {
+        // matrixs.
+        public static int M_ViewMatrix = Shader.PropertyToID("_M_ViewMatrix");
+        public static int M_ProjMatrix = Shader.PropertyToID("_M_ProjMatrix");
+        public static int M_JitterProjMatrix = Shader.PropertyToID("_M_JitterProjMatrix");
+        public static int M_PreViewMatrix = Shader.PropertyToID("_M_PreViewMatrix");
+        public static int M_PreProjMatrix = Shader.PropertyToID("_M_PreProjMatrix");
+        public static int M_PreJitterProjMatrix = Shader.PropertyToID("_M_PreJitterProjMatrix");
 
-            // vecvors.
-            public static int V_ScreenParams = Shader.PropertyToID("_V_ScreenParams");
+        public static int M_ScreenToWorldMatrix = Shader.PropertyToID("_M_ScreenToWorldMatrix");
+        public static int M_ScreenToTranslatedWorld = Shader.PropertyToID("_M_ScreenToTranslatedWorldMatrix");
+
+        // vecvors.
+        public static int V_ScreenParams = Shader.PropertyToID("_V_ScreenParams");
+        public static int V_BufferSizeAndInvSize = Shader.PropertyToID("_V_BufferSizeAndInvSize");
+
+        // floats.
 
 
-            // floats.
-
-
-            // unity default.
-            public static int ZBufferParams = Shader.PropertyToID("_ZBufferParams");
-            public static int WorldSpaceCameraPos = Shader.PropertyToID("_WorldSpaceCameraPos");
-        }
+        // unity default.
+        public static int ZBufferParams = Shader.PropertyToID("_ZBufferParams");
+        public static int WorldSpaceCameraPos = Shader.PropertyToID("_WorldSpaceCameraPos");
     }
 
 }

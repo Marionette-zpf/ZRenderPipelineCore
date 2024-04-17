@@ -1,9 +1,9 @@
 #ifndef Z_RENDER_PIPELINE_SHADING_MODELS_INCLUDE
 #define Z_RENDER_PIPELINE_SHADING_MODELS_INCLUDE
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/HairBsdf.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/BRDF.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/RectLight.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/HairBsdf.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/BRDF.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/RectLight.hlsl"
 
 
 struct FAreaLight

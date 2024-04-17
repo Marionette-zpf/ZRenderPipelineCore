@@ -1,8 +1,7 @@
 #ifndef Z_RENDER_PIPELINE_SCENE_TEXTURE_COMMON_INCLUDE
 #define Z_RENDER_PIPELINE_SCENE_TEXTURE_COMMON_INCLUDE
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/Common.hlsl"
-
+#include "Assets/ZRenderPipeline/ShaderLibrary/Common.hlsl"
 
 #define SceneTexturesStruct_SceneColorTextureSampler sampler_PointClamp
 #define SceneTexturesStruct_SceneDepthTextureSampler sampler_PointClamp
@@ -16,11 +15,12 @@
 #define SceneTexturesStruct_GBufferVelocityTextureSampler sampler_PointClamp
 #define SceneTexturesStruct_ScreenSpaceAOTextureSampler sampler_PointClamp
 
+
 /** Returns DeviceZ which is the z value stored in the depth buffer. */
 float LookupDeviceZ( float2 ScreenUV )
 {
 	// native Depth buffer lookup
-	return Texture2DSampleLevel(_SceneTexturesStruct_SceneDepthTexture, SceneTexturesStruct_SceneDepthTextureSampler, ScreenUV, 0).r;
+	return Texture2DSampleLevel(_SceneTexturesStruct_SceneDepthTexture, SceneTexturesStruct_SceneDepthTextureSampler, ScreenUV, 0).r; 
 }
 
 /** Returns clip space W, which is world space distance along the View Z axis. Note if you need DeviceZ LookupDeviceZ() is the faster option */

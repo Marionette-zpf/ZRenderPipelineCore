@@ -111,13 +111,13 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
         public override void ExecuRendererPass(ScriptableRenderContext context, CommandBuffer cmd, ref ZRenderingData renderingData)
         {
-            cmd.SetGlobalTexture("_CameraTargetColor", m_CameraColorTarget.GetIdentifier());
-            cmd.SetGlobalTexture("_CameraTargetDepth", m_CameraDepthTarget.GetIdentifier());
+            cmd.SetGlobalTexture(ZUniversalShaderContents.Tex_CameraTargetColor, m_CameraColorTarget.GetIdentifier());
+            cmd.SetGlobalTexture(ZUniversalShaderContents.Tex_CameraTargetDepth, m_CameraDepthTarget.GetIdentifier());
 
-            cmd.SetGlobalTexture("_GBufferA", m_CameraGBufferA.GetIdentifier());
-            cmd.SetGlobalTexture("_GBufferB", m_CameraGBufferB.GetIdentifier());
-            cmd.SetGlobalTexture("_GBufferC", m_CameraGBufferC.GetIdentifier());
-            cmd.SetGlobalTexture("_GBufferD", m_CameraGBufferD.GetIdentifier());
+            cmd.SetGlobalTexture(ZUniversalShaderContents.Tex_GBufferA, m_CameraGBufferA.GetIdentifier());
+            cmd.SetGlobalTexture(ZUniversalShaderContents.Tex_GBufferB, m_CameraGBufferB.GetIdentifier());
+            cmd.SetGlobalTexture(ZUniversalShaderContents.Tex_GBufferC, m_CameraGBufferC.GetIdentifier());
+            cmd.SetGlobalTexture(ZUniversalShaderContents.Tex_GBufferD, m_CameraGBufferD.GetIdentifier());
         }
 
         public override void OnFrameEnd(CommandBuffer cmd)
@@ -150,6 +150,17 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         }
         #endregion
 
+    }
+
+    public static partial class ZUniversalShaderContents
+    {
+        // textures.
+        public static int Tex_CameraTargetColor = Shader.PropertyToID("_CameraTargetColor");
+        public static int Tex_CameraTargetDepth = Shader.PropertyToID("_CameraTargetDepth");
+        public static int Tex_GBufferA = Shader.PropertyToID("_GBufferA");
+        public static int Tex_GBufferB = Shader.PropertyToID("_GBufferB");
+        public static int Tex_GBufferC = Shader.PropertyToID("_GBufferC");
+        public static int Tex_GBufferD = Shader.PropertyToID("_GBufferD");
     }
 
 }

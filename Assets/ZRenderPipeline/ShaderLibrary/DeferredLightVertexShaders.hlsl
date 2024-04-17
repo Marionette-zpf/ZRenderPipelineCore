@@ -1,7 +1,7 @@
 #ifndef Z_RENDER_PIPELINE_DEFERRED_LIGHT_VERTEX_SHADER_INCLUDE
 #define Z_RENDER_PIPELINE_DEFERRED_LIGHT_VERTEX_SHADER_INCLUDE
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/Common.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/Common.hlsl"
 
 /** Vertex shader for rendering a directional light using a full screen quad. */
 void DirectionalVertexMain(

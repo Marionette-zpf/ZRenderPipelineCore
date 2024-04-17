@@ -1,10 +1,10 @@
 #ifndef Z_RENDER_PIPELINE_COMMON_DEFERRED_SHADING_COMMON_INCLUDE
 #define Z_RENDER_PIPELINE_COMMON_DEFERRED_SHADING_COMMON_INCLUDE
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/TextureSampling.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/Input.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/SceneTexturesCommon.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/ShadingCommon.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/TextureSampling.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/Input.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/SceneTexturesCommon.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/ShadingCommon.hlsl"
 
 float3 DecodeNormal( float3 N )
 {
@@ -326,6 +326,71 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 	Out.AmbientOcclusion = ScreenSpaceAO.r;
 
 	return Out;
+}
+
+
+// all values that are output by the forward rendering pass
+struct ZGBufferData
+{
+	// normalized
+	float3 WorldNormal;
+	// 0..1 (derived from BaseColor, Metalness, Specular)
+	float3 DiffuseColor;
+	// 0..1 (derived from BaseColor, Metalness, Specular)
+	float3 SpecularColor;
+	// 0..1, white for SHADINGMODELID_SUBSURFACE_PROFILE and SHADINGMODELID_EYE (apply BaseColor after scattering is more correct and less blurry)
+	float3 BaseColor;
+	// 0..1
+	float Metallic;
+	// 0..1
+	float Specular;
+	// 0..1
+	float Roughness;
+	// 0..255 
+	uint ShadingModelID;
+	// in unreal units (linear), can be used to reconstruct world position,
+	// only valid when decoding the GBuffer as the value gets reconstructed from the Z buffer
+	float Depth;
+	// Velocity for motion blur (only used when WRITES_VELOCITY_TO_GBUFFER is enabled)
+	float4 Velocity;
+};
+
+ZGBufferData ZGetGBufferDataFromSceneTextures(float2 UV, bool bGetNormalizedNormal = false)
+{
+	float Depth = SAMPLE_TEXTURE2D_X(_CameraTargetDepth, sampler_PointClamp, UV).r;
+	float SceneDepth = LinearEyeDepth(Depth, _ZBufferParams);
+
+	float4 InGBufferA = _GBufferA.SampleLevel(sampler_PointClamp, UV, 0);
+	float4 InGBufferB = _GBufferB.SampleLevel(sampler_PointClamp, UV, 0);
+	float4 InGBufferC = _GBufferC.SampleLevel(sampler_PointClamp, UV, 0);
+	float4 InGBufferD = _GBufferD.SampleLevel(sampler_PointClamp, UV, 0);
+	float4 InGBufferVelocity = _VelocityTexture.SampleLevel(sampler_PointClamp, UV, 0);
+
+	ZGBufferData GBuffer = (ZGBufferData)0;
+	GBuffer.WorldNormal = DecodeNormal(InGBufferA.xyz);
+
+	if(bGetNormalizedNormal)
+	{
+		GBuffer.WorldNormal = normalize(GBuffer.WorldNormal);
+	}
+
+	GBuffer.Metallic	= InGBufferB.r;
+	GBuffer.Specular	= InGBufferB.g;
+	GBuffer.Roughness	= InGBufferB.b;
+
+	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
+	GBuffer.BaseColor = DecodeBaseColor(InGBufferC.rgb);
+	GBuffer.Depth = SceneDepth;
+
+	// derived from BaseColor, Metalness, Specular
+	{
+		GBuffer.SpecularColor = ComputeF0(GBuffer.Specular, GBuffer.BaseColor, GBuffer.Metallic);
+		GBuffer.DiffuseColor = GBuffer.BaseColor - GBuffer.BaseColor * GBuffer.Metallic;
+	}
+
+	GBuffer.Velocity = InGBufferVelocity;
+
+	return GBuffer;
 }
 
 #endif

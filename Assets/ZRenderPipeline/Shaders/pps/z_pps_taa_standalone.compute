@@ -28,7 +28,6 @@ RWTexture2D<float4> OutResult;
 // Have RGB and opacity in alpha.
 #define HISTORY_PAYLOAD_RGB_OPACITY (HISTORY_PAYLOAD_RGB_TRANSLUCENCY)
 	
-
 // /** Caching method for scene color. */
 // // Disable any in code cache.
 // #define AA_SAMPLE_CACHE_METHOD_DISABLE 0
@@ -296,7 +295,7 @@ static const uint kNeighborsCount = 9;
 
 //------------------------------------------------------- PARAMETERS
 TEXTURE2D(_HistoryTaaTexture); SAMPLER(sampler_HistoryTaaTexture);
-TEXTURE2D(_VelocityTexture);   SAMPLER(sampler_VelocityTexture);
+//TEXTURE2D(_VelocityTexture);   SAMPLER(sampler_VelocityTexture);
 	
 TEXTURE2D(_SceneColorTexture);  
 TEXTURE2D(_SceneDepthTexture); 

@@ -1,7 +1,7 @@
 #ifndef Z_RENDER_PIPELINE_DYNAMIC_LIGHTING_COMMON_INCLUDE
 #define Z_RENDER_PIPELINE_DYNAMIC_LIGHTING_COMMON_INCLUDE
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/Input.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/Input.hlsl"
 
 // Copyright Epic Games, Inc. All Rights Reserved.
 

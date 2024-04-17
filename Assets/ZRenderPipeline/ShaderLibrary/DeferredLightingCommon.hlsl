@@ -1,12 +1,12 @@
 #ifndef Z_RENDER_PIPELINE_DEFERRED_LIGHTING_COMMON_INCLUDE
 #define Z_RENDER_PIPELINE_DEFERRED_LIGHTING_COMMON_INCLUDE
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/HairBsdf.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/LightAccumulator.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/ShadingModels.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/CapsuleLight.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/CapsuleLightIntegrate.hlsl"
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/DynamicLightingCommon.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/HairBsdf.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/LightAccumulator.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/ShadingModels.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/CapsuleLight.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/CapsuleLightIntegrate.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/DynamicLightingCommon.hlsl"
 
 /** 
  * Data about a single light.

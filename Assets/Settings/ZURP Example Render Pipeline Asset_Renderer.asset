@@ -15,6 +15,20 @@ MonoBehaviour:
   m_CameraMask: 7
   m_Active: 1
   m_HizBuildComputer: {fileID: 7200000, guid: 98302209503cc1642b05f0e871c7e794, type: 3}
+--- !u!114 &-5405089604891653235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9cf56336f4b65440b4476a8b5ee574f, type: 3}
+  m_Name: ScreenSpaceReflectionPass
+  m_EditorClassIdentifier: 
+  m_CameraMask: 7
+  m_Active: 1
 --- !u!114 &-5173270272448446450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,9 +138,10 @@ MonoBehaviour:
   - {fileID: -5173270272448446450}
   - {fileID: 3338102168999553127}
   - {fileID: 6932375893739292350}
+  - {fileID: -5405089604891653235}
   - {fileID: -891045884330384655}
   - {fileID: -3076414189594026311}
-  m_RendererFeatureMap: 504a0ee5be36d1e28ec492af8a01d9e4e736acc578cc5200e6476374929bc89a5ba664ca276217be0e409fab18da34b867e82d973c52532ebec6cf6325bf3460f1e2e9397d5ea2f3b9de461798614ed5
+  m_RendererFeatureMap: 504a0ee5be36d1e28ec492af8a01d9e4e736acc578cc5200e6476374929bc89a5ba664ca276217be0e409fab18da34b867e82d973c52532ebec6cf6325bf34608dcb4649a443fdb4f1e2e9397d5ea2f3b9de461798614ed5
   shaders:
     todo: todo
 --- !u!114 &23305767174813415

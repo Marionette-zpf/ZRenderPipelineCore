@@ -292,7 +292,7 @@ Shader "ZPipeline/ZUniversal/PPS/TAAStandalone"
 
 	//------------------------------------------------------- PARAMETERS
 	TEXTURE2D(_HistoryTaaTexture); SAMPLER(sampler_HistoryTaaTexture);
-	TEXTURE2D(_VelocityTexture);   SAMPLER(sampler_VelocityTexture);
+	//TEXTURE2D(_VelocityTexture);   SAMPLER(sampler_VelocityTexture);
 	
 	TEXTURE2D(_SceneColorTexture);  
 	TEXTURE2D(_SceneDepthTexture); 

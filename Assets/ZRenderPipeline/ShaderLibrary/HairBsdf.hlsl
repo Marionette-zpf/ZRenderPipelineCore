@@ -1,7 +1,7 @@
 #ifndef Z_RENDER_PIPELINE_HAIR_BSDF_INCLUDE
 #define Z_RENDER_PIPELINE_HAIR_BSDF_INCLUDE
 
-#include "Assets/ZRenderPipeline/Shaders/ShaderLibrary/ShadingCommon.hlsl"
+#include "Assets/ZRenderPipeline/ShaderLibrary/ShadingCommon.hlsl"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Transmittance functions

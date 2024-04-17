@@ -4,7 +4,7 @@
 #include "Assets/ZRenderPipeline/ShaderLibrary/Input.hlsl"
 #include "Assets/ZRenderPipeline/ShaderLibrary/TextureSampling.hlsl"
 #include "Assets/ZRenderPipeline/ShaderLibrary/Platform.hlsl"
-
+ 
 //// These types are used for material translator generated code, or any functions the translated code can call
 //#if PIXELSHADER
 //	#define MaterialFloat half
