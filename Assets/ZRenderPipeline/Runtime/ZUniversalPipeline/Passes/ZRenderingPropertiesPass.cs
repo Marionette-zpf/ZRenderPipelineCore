@@ -1,3 +1,5 @@
+using Unity.Mathematics;
+
 namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 {
     public class ZRenderingPropertiesPass : ZScriptableRendererPass
@@ -38,20 +40,51 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         public override void ExecuRendererPass(ScriptableRenderContext context, CommandBuffer cmd, ref ZRenderingData renderingData)
         {
             var Camera = renderingData.camera;
-            var CurProjectionMatrix = m_JitterProjMatrix != Matrix4x4.identity ? m_JitterProjMatrix : m_ProjMatrix;
+            var SceneViewMatrix = m_ViewMatrix;
+            var SceneProjectionMatrix = m_JitterProjMatrix != Matrix4x4.identity ? m_JitterProjMatrix : m_ProjMatrix;
 
-            var ProjMat = CurProjectionMatrix;
-            ProjMat[0, 2] = -ProjMat[0, 2];
-            ProjMat[1, 2] = -ProjMat[1, 2];
-            ProjMat[2, 2] = -ProjMat[2, 2];
-            ProjMat[3, 2] = -ProjMat[3, 2];
+            var SceneGpuProjectionMatrix = SceneProjectionMatrix;
+            {
+                SceneGpuProjectionMatrix.m20 = -SceneGpuProjectionMatrix.m20;
+                SceneGpuProjectionMatrix.m21 = -SceneGpuProjectionMatrix.m21;
+                SceneGpuProjectionMatrix.m22 = -SceneGpuProjectionMatrix.m22;
+                SceneGpuProjectionMatrix.m23 = -SceneGpuProjectionMatrix.m23;
+
+                var textureScaleAndBias = Matrix4x4.identity;
+                textureScaleAndBias.m22 = 0.5f;
+                textureScaleAndBias.m23 = 0.5f;
+
+                SceneGpuProjectionMatrix = textureScaleAndBias * SceneGpuProjectionMatrix;
+            }
+
+            var TranslatedViewMatrix = SceneViewMatrix;
+            {
+                TranslatedViewMatrix[0, 3] = 0;
+                TranslatedViewMatrix[1, 3] = 0;
+                TranslatedViewMatrix[2, 3] = 0;
+            }
+
+            var ProjMat = SceneProjectionMatrix;
+            {
+                ProjMat[0, 2] = -ProjMat[0, 2];
+                ProjMat[1, 2] = -ProjMat[1, 2];
+                ProjMat[2, 2] = -ProjMat[2, 2];
+                ProjMat[3, 2] = -ProjMat[3, 2];
+            }
 
             var ProjZMat = Matrix4x4.identity;
-            ProjZMat[2, 2] = ProjMat[2, 2];
-            ProjZMat[2, 3] = ProjMat[2, 3];
+            {
+                ProjZMat[2, 2] = ProjMat[2, 2];
+                ProjZMat[2, 3] = ProjMat[2, 3];
 
-            ProjZMat[3, 2] = 1.0f;
-            ProjZMat[3, 3] = 0.0f;
+                ProjZMat[3, 2] = 1.0f;
+                ProjZMat[3, 3] = 0.0f;
+            }
+
+            var ReverseZ = Matrix4x4.identity;
+            {
+                ReverseZ[2, 2] = -1;
+            }
 
 
             var ViewProject = ProjMat * Camera.transform.worldToLocalMatrix;
@@ -64,8 +97,6 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             cmd.SetGlobalVector(ZUniversalShaderContents.ZBufferParams, m_ZBufferParams);
             cmd.SetGlobalVector(ZUniversalShaderContents.WorldSpaceCameraPos, renderingData.camera.transform.position);
 
-            cmd.SetViewProjectionMatrices(m_ViewMatrix, CurProjectionMatrix);
-
             // set global matrixs.
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_ViewMatrix, m_ViewMatrix);
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_ProjMatrix, m_ProjMatrix);
@@ -73,6 +104,12 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_PreViewMatrix, m_PreViewMatrix);
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_PreProjMatrix, m_PreProjMatrix);
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_PreJitterProjMatrix, m_PreJitterProjMatrix);
+
+            cmd.SetGlobalMatrix(ZUniversalShaderContents.M_WorldToClip, SceneGpuProjectionMatrix * SceneViewMatrix);
+            cmd.SetGlobalMatrix(ZUniversalShaderContents.M_TranslatedWorldToClip, SceneGpuProjectionMatrix * TranslatedViewMatrix);
+            cmd.SetGlobalMatrix(ZUniversalShaderContents.M_TranslatedWorldToCameraView, TranslatedViewMatrix);
+            cmd.SetGlobalMatrix(ZUniversalShaderContents.M_ViewToClip, SceneGpuProjectionMatrix * ReverseZ);
+
 
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_ScreenToWorldMatrix, ScreenToWorldMatrix);
             cmd.SetGlobalMatrix(ZUniversalShaderContents.M_ScreenToTranslatedWorld, Matrix4x4.Translate(-Camera.transform.position) * ScreenToWorldMatrix);
@@ -143,9 +180,12 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         public static int M_PreViewMatrix = Shader.PropertyToID("_M_PreViewMatrix");
         public static int M_PreProjMatrix = Shader.PropertyToID("_M_PreProjMatrix");
         public static int M_PreJitterProjMatrix = Shader.PropertyToID("_M_PreJitterProjMatrix");
-
+        public static int M_WorldToClip = Shader.PropertyToID("_M_WorldToClip");
         public static int M_ScreenToWorldMatrix = Shader.PropertyToID("_M_ScreenToWorldMatrix");
         public static int M_ScreenToTranslatedWorld = Shader.PropertyToID("_M_ScreenToTranslatedWorldMatrix");
+        public static int M_TranslatedWorldToCameraView = Shader.PropertyToID("_M_TranslatedWorldToCameraView");
+        public static int M_TranslatedWorldToClip = Shader.PropertyToID("_M_TranslatedWorldToClip");
+        public static int M_ViewToClip = Shader.PropertyToID("_M_ViewToClip");
 
         // vecvors.
         public static int V_ScreenParams = Shader.PropertyToID("_V_ScreenParams");

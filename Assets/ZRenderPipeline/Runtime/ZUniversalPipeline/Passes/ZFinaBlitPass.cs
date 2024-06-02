@@ -8,6 +8,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
             if (currentCameraTarget != BuiltinRenderTextureType.CameraTarget)
             {
+                //cmd.Blit(ZUniversalRenderer.Instance.GetRendererPass<ZScreenSpaceReflectionPass>().SSRRenderTextureHandle.GetIdentifier(), BuiltinRenderTextureType.CameraTarget);
                 cmd.Blit(currentCameraTarget, BuiltinRenderTextureType.CameraTarget);
             }
         }

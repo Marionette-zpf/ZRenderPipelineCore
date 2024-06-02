@@ -213,6 +213,8 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
             float4 sceneBufferSizeAndInverse = new float4(sceneBufferDesc.width, sceneBufferDesc.height, 1.0f / sceneBufferDesc.width, 1.0f / sceneBufferDesc.height);
 
+            cmd.SetGlobalFloat("_U_StateFrameIndexMod8", m_TemporalSampleIndex);
+
             cmd.SetGlobalFloat("_TAA_F_CurrentFrameWeight", 0.04f);
             cmd.SetGlobalFloatArray("_TAA_FA_PlusWeights", m_PlusWeights);
             cmd.SetGlobalFloatArray("_TAA_FA_SampleWeights", m_SampleWeights);

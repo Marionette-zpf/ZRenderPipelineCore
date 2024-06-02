@@ -226,12 +226,12 @@ uint ReverseBits32( uint bits )
 	return reversebits( bits );
 }
 
-float2 Hammersley16( uint Index, uint NumSamples, uint2 Random )
-{
-	float E1 = frac( (float)Index / NumSamples + float( Random.x ) * (1.0 / 65536.0) );
-	float E2 = float( ( ReverseBits32(Index) >> 16 ) ^ Random.y ) * (1.0 / 65536.0);
-	return float2( E1, E2 );
-}
+//float2 Hammersley16( uint Index, uint NumSamples, uint2 Random )
+//{
+//	float E1 = frac( (float)Index / NumSamples + float( Random.x ) * (1.0 / 65536.0) );
+//	float E2 = float( ( ReverseBits32(Index) >> 16 ) ^ Random.y ) * (1.0 / 65536.0);
+//	return float2( E1, E2 );
+//}
 
 float2 ViewportUVToScreenPos(float2 ViewportUV)
 {
@@ -482,6 +482,23 @@ float4 Pow6( float4 x )
 	float4 xx = x*x;
 	return xx * xx * xx;
 }
+
+//Since some platforms don't remove Nans in saturate calls, 
+//SafeSaturate function will remove nan/inf.    
+//Can be expensive, only call when there's a good reason to expect Nans.
+//D3D saturate actually turns NaNs -> 0  since it does the max(0.0f, value) first, and D3D NaN rules specify the non-NaN operand wins in such a case.  
+//See: https://docs.microsoft.com/en-us/windows/desktop/direct3dhlsl/saturate
+#define SafeSaturate_Def(type)\
+type SafeSaturate(type In) \
+{\
+	return saturate(In);\
+}
+
+SafeSaturate_Def(float)
+SafeSaturate_Def(float2)
+SafeSaturate_Def(float3)
+SafeSaturate_Def(float4)
+
 
 // Only valid for x >= 0
 MaterialFloat AtanFast( MaterialFloat x )

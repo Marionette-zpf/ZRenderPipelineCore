@@ -7,7 +7,9 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         [SerializeField]
         private ComputeShader m_HizBuildComputer;
 
-        private RenderTexture m_HizMap;
+        private RenderTexture m_FurthestHizMap;
+
+        public RenderTexture FurthestHizTexture => m_FurthestHizMap;
 
         public override bool IsValidPass()
         {
@@ -47,13 +49,13 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             hizDesc.mipCount = NumMips;
             hizDesc.enableRandomWrite = true;
 
-            if (m_HizMap == null || m_HizMap.width != hizDesc.width || m_HizMap.height != hizDesc.height)
+            if (m_FurthestHizMap == null || m_FurthestHizMap.width != hizDesc.width || m_FurthestHizMap.height != hizDesc.height)
             {
                 ReleaseHizMap();
-                m_HizMap = RenderTexture.GetTemporary(hizDesc);
-                m_HizMap.name = "_HizMap";
-                m_HizMap.Create();
-                m_HizMap.GenerateMips();
+                m_FurthestHizMap = RenderTexture.GetTemporary(hizDesc);
+                m_FurthestHizMap.name = "_HizMap";
+                m_FurthestHizMap.Create();
+                m_FurthestHizMap.GenerateMips();
             }
 
             for (int mipmapLevel = 0; mipmapLevel < NumMips; mipmapLevel += 4)
@@ -78,26 +80,26 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
                 else
                 {
                     kernel = genMipCount - 1 + 4;
-                    cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("RWParentTextureMip"), m_HizMap, mipmapLevel - 1);
+                    cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("RWParentTextureMip"), m_FurthestHizMap, mipmapLevel - 1);
 
                     srcSize = new int2(HZBSize.x >> (mipmapLevel - 1), HZBSize.y >> (mipmapLevel - 1));
                 }
 
-                cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("FurthestHZBOutput_0"), m_HizMap, mipmapLevel);
+                cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("FurthestHZBOutput_0"), m_FurthestHizMap, mipmapLevel);
 
                 if (genMipCount > 1)
                 {
-                    cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("FurthestHZBOutput_1"), m_HizMap, mipmapLevel + 1);
+                    cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("FurthestHZBOutput_1"), m_FurthestHizMap, mipmapLevel + 1);
                 }
 
                 if (genMipCount > 2)
                 {
-                    cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("FurthestHZBOutput_2"), m_HizMap, mipmapLevel + 2);
+                    cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("FurthestHZBOutput_2"), m_FurthestHizMap, mipmapLevel + 2);
                 }
 
                 if (genMipCount > 3)
                 {
-                    cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("FurthestHZBOutput_3"), m_HizMap, mipmapLevel + 3);
+                    cmd.SetComputeTextureParam(m_HizBuildComputer, kernel, Shader.PropertyToID("FurthestHZBOutput_3"), m_FurthestHizMap, mipmapLevel + 3);
                 }
 
 
@@ -111,6 +113,11 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
                 cmd.DispatchCompute(m_HizBuildComputer, kernel, gx, gy, gz);
             }
+
+            float2 HZBUvFactor = new float2(desc.width / (2.0f * HZBSize.x), desc.height / (2.0f * HZBSize.y));
+            float4 HZBUvFactorAndInvFactor = new float4(HZBUvFactor.x, HZBUvFactor.y, 1.0f / HZBUvFactor.x, 1.0f / HZBUvFactor.y);
+
+            cmd.SetGlobalVector("_V_HZBUvFactorAndInvFactor", HZBUvFactorAndInvFactor);
         }
 
         protected override void Dispose(bool disposing)
@@ -120,10 +127,10 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
         private void ReleaseHizMap()
         {
-            if (m_HizMap != null)
+            if (m_FurthestHizMap != null)
             {
-                RenderTexture.ReleaseTemporary(m_HizMap);
-                m_HizMap = null;
+                RenderTexture.ReleaseTemporary(m_FurthestHizMap);
+                m_FurthestHizMap = null;
             }
         }
     }

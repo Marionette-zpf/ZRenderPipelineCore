@@ -19,16 +19,23 @@ Texture2D _VelocityTexture;
 
 // common vectore parameters.
 uniform float4 _V_BufferSizeAndInvSize;
+uniform float4 _V_HZBUvFactorAndInvFactor;
+uniform float4 _V_ScreenPositionScaleBias;
 
 // common int parameters.
 uniform uint _U_StateFrameIndexMod8;
 
 
 // common matrix parameters.
+uniform float4x4 _M_ViewMatrix;
+uniform float4x4 _M_ProjMatrix;
+uniform float4x4 _M_ViewToClip;
+uniform float4x4 _M_WorldToClip;
+
 uniform float4x4 _M_ScreenToWorldMatrix;
 uniform float4x4 _M_ScreenToTranslatedWorldMatrix;
-
-
+uniform float4x4 _M_TranslatedWorldToClip;
+uniform float4x4 _M_TranslatedWorldToCameraView;
 
 
 

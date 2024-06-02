@@ -11,6 +11,7 @@ Shader "ZPipeline/ZUniversal/PPS/TAAStandalone"
 	#include "Assets/ZRenderPipeline/ShaderLibrary/TextureSampling.hlsl"
 	#include "Assets/ZRenderPipeline/ShaderLibrary/Common.hlsl"
 	#include "Assets/ZRenderPipeline/ShaderLibrary/BlitCommon.hlsl"
+	#include "Assets/ZRenderPipeline/ShaderLibrary/MonteCarlo.hlsl"
 
 	//------------------------------------------------------- ENUM VALUES
 

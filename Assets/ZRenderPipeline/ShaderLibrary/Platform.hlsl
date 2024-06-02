@@ -87,4 +87,6 @@ float4 max3( float4 a, float4 b, float4 c )
 	);
 }
 
+#define INFINITE_FLOAT 3.402823e+38
+
 #endif

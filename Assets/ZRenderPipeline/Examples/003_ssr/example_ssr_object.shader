@@ -60,7 +60,7 @@
         {
             INITIALIZE_GBUFFERS(0);
 
-            SET_SCENE_COLOR(float4(i.positionWS, 0));
+            SET_SCENE_COLOR(_BaseColor);
 
             SET_GBUFFER_A(float4(i.normal * 0.5 + 0.5, 0.0));
             SET_GBUFFER_B(float4(_Metallic, 0.0, _Roughness, 0.0));
