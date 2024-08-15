@@ -1,0 +1,76 @@
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+#pragma kernel ClusterCull
+
+struct Vertex
+{
+    float3 Position;
+    float3 Normal;
+    float2 Texcoord;
+    float4 Tangent;
+};
+
+struct ClusterCullData
+{
+    float4 BoundingSphere;
+    uint NormalCone1;
+    uint NormalCone2;
+    uint NormalCone3;
+    uint NormalCone4;
+    uint ApexOffset;
+};
+
+cbuffer ConstantBuffer
+{
+    uint ClusterCount;
+    uint LastClusterVertCount;
+    uint LastClusterPrimCount;
+}
+
+struct Cluster
+{
+    uint VertCount;
+    uint VertOffset;
+    uint PrimCount;
+    uint PrimOffset;
+};
+
+RWStructuredBuffer<Vertex>              VertexBuffer;
+RWStructuredBuffer<uint>                IndexBuffer;
+RWStructuredBuffer<Cluster>             ClusterBuffer;
+ByteAddressBuffer                       ClusterIndexBuffer;
+RWStructuredBuffer<ClusterCullData>     CullDataBuffer;
+
+// uint3 UnpackPrimitive(uint primitive)
+// {
+//     // Unpacks a 10 bits per index triangle from a 32-bit uint.
+//     return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
+// }
+
+// uint3 GetPrimitive(Cluster cluster, uint index)
+// {
+//     return UnpackPrimitive(ClusterIndexBuffer[cluster.PrimOffset + index]);
+// }
+
+// uint GetVertexIndex(Cluster cluster, uint localIndex)
+// {
+//     localIndex = cluster.VertOffset + localIndex;
+
+//     return IndexBuffer.Load(localIndex * 4);
+// }
+
+//SV_GroupID : Cluster
+//SV_GroupIndex : Vertex[64]
+[numthreads(64, 1, 1)]
+void ClusterCull(uint3 id : SV_DispatchThreadID, uint gtid : SV_GroupIndex, uint gid : SV_GroupID)
+{
+    //Cluster cluster = ClusterBuffer[gid];
+
+    if (gtid < 64)
+    {
+        // uint vertexIndex = GetVertexIndex(cluster, gtid);
+        //VertexBuffer[32].Position = float3(10.0, 0.0, 0.0);
+    }
+
+
+}

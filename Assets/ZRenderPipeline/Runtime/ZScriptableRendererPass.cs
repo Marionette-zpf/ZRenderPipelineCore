@@ -57,6 +57,11 @@ namespace UnityEngine.Rendering.ZPipeline
 
         void OnValidate()
         {
+            //Create();
+        }
+
+        void Awake()
+        {
             Create();
         }
 
@@ -96,6 +101,16 @@ namespace UnityEngine.Rendering.ZPipeline
         public virtual void SetupRendererPass(CommandBuffer cmd, ref ZRenderingData renderingData) { }
         public abstract void ExecuRendererPass(ScriptableRenderContext context, CommandBuffer cmd, ref ZRenderingData renderingData);
         public virtual void OnFrameEnd(CommandBuffer cmd) { }
+
+
+        // private static T _instance;
+
+
+        // public static T Instance
+        // {
+        //     get => _instance;
+        // }
+
     }
 
 
@@ -126,7 +141,7 @@ namespace UnityEngine.Rendering.ZPipeline
 
         public override void OnGUI(Rect position, UnityEditor.SerializedProperty property, GUIContent label)
         {
-            property.intValue = UnityEditor.EditorGUILayout.MaskField("Ä¿±êÏà»ú", property.intValue, g_CameraTypes);
+            property.intValue = UnityEditor.EditorGUILayout.MaskField("Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½", property.intValue, g_CameraTypes);
         }
 
         public override float GetPropertyHeight(UnityEditor.SerializedProperty property, GUIContent label)
