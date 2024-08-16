@@ -14,7 +14,7 @@ public class ZClusterReader : MonoBehaviour
     public string fileName;
 
     private byte[] m_buffer;
-    private Mesh[] m_meshes;
+    private ClusterMesh[] m_meshes;
 
     private BoundingSphere m_boundingSphere;
 
@@ -97,7 +97,7 @@ public class ZClusterReader : MonoBehaviour
         }
         br.Close();
 
-        m_meshes = new Mesh[meshes.Length];
+        m_meshes = new ClusterMesh[meshes.Length];
 
 
         var spanBuffer = new Span<byte>(m_buffer);
@@ -639,7 +639,7 @@ public class ZClusterReader : MonoBehaviour
         }
     }
 
-    struct Mesh
+    struct ClusterMesh
     {
         public D3D12_INPUT_ELEMENT_DESC[] LayoutElems;
         public D3D12_INPUT_LAYOUT_DESC LayoutDesc;
