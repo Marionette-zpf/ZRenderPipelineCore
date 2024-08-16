@@ -307,15 +307,22 @@ public class ZClusterReader : MonoBehaviour
             }
 
             float3[] v0 = new float3[m.VertexCount];
+            float3[] n0 = new float3[m.VertexCount];
+
             Span<byte> spanVertex = new Span<byte>(m.Vertices[(int)vbIndexPos]);
             int float3Size = Marshal.SizeOf(typeof(float3));
             uint stride = m.VertexStrides[(int)vbIndexPos];
 
             for (int vertexIndex = 0; vertexIndex < v0.Length; vertexIndex++)
             {
-                v0[vertexIndex] = MemoryPackSerializer.Deserialize<float3>(spanVertex.Slice((int)positionOffset + vertexIndex * (int)stride, float3Size));
+                v0[vertexIndex] = MemoryPackSerializer.Deserialize<float3>(spanVertex.Slice(             (int)positionOffset + vertexIndex * (int)stride, float3Size));
+                n0[vertexIndex] = MemoryPackSerializer.Deserialize<float3>(spanVertex.Slice(float3Size + (int)positionOffset + vertexIndex * (int)stride, float3Size));
             }
-                
+
+            m_meshes[i].Vertexs = v0;
+            m_meshes[i].Normals = n0;
+            m_meshes[i].Texcoords = null;
+            m_meshes[i].Tangents = null;
 
             BoundingSphere.CreateFromPoints(ref m.BoundingSphere, m.VertexCount, v0, stride);
 
@@ -641,6 +648,12 @@ public class ZClusterReader : MonoBehaviour
 
     public struct ClusterMesh
     {
+        public float3[] Vertexs;
+        public float3[] Normals;
+
+        public float2[] Texcoords;
+        public float3[] Tangents;
+
         public D3D12_INPUT_ELEMENT_DESC[] LayoutElems;
         public D3D12_INPUT_LAYOUT_DESC LayoutDesc;
 
