@@ -14,9 +14,9 @@ public class ZClusterReader : MonoBehaviour
     public string fileName;
 
     private byte[] m_buffer;
-    private ClusterMesh[] m_meshes;
+    public ClusterMesh[] m_meshes;
 
-    private BoundingSphere m_boundingSphere;
+    public BoundingSphere m_boundingSphere;
 
     [ContextMenu("测试读取 Cluster 数据")]
     public void Test01()
@@ -332,7 +332,7 @@ public class ZClusterReader : MonoBehaviour
         Debug.LogWarning("FileHeader : " + header.ToString());
     }
 
-    private PackedTriangle ConvertBytesToPackedTriangle(ReadOnlySpan<byte> bytes)
+    public PackedTriangle ConvertBytesToPackedTriangle(ReadOnlySpan<byte> bytes)
     {
         PackedTriangle triangle = new PackedTriangle();
 
@@ -345,7 +345,7 @@ public class ZClusterReader : MonoBehaviour
         return triangle;
     }
 
-    private uint GetFormatSize(DXGI_FORMAT format)
+    public uint GetFormatSize(DXGI_FORMAT format)
     {
         switch (format)
         {
@@ -366,7 +366,7 @@ public class ZClusterReader : MonoBehaviour
         new D3D12_INPUT_ELEMENT_DESC { SemanticName = "BITANGENT", SemanticIndex = 0, Format = DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT, InputSlot = 0, AlignedByteOffset = 0xffffffff, InstanceDataStepRate = 1 }
     };
 
-    struct D3D12_INPUT_ELEMENT_DESC
+    public struct D3D12_INPUT_ELEMENT_DESC
     {
         public string SemanticName;
         public uint SemanticIndex;
@@ -377,13 +377,13 @@ public class ZClusterReader : MonoBehaviour
         public uint InstanceDataStepRate;
     };
 
-    struct D3D12_INPUT_LAYOUT_DESC
+    public struct D3D12_INPUT_LAYOUT_DESC
     {
         public D3D12_INPUT_ELEMENT_DESC[] pInputElementDescs;
         public uint NumElements;
     };
 
-    struct FileHeader
+    public struct FileHeader
     {
         public uint Prolog;
         public uint Version;
@@ -400,7 +400,7 @@ public class ZClusterReader : MonoBehaviour
         }
     }
 
-    struct MeshHeader
+    public struct MeshHeader
     {
         public uint Indices;
         public uint IndexSubsets;
@@ -413,13 +413,13 @@ public class ZClusterReader : MonoBehaviour
         public uint CullData;
     };
 
-    struct BufferView
+    public struct BufferView
     {
         public uint Offset;
         public uint Size;
     };
 
-    struct Accessor
+    public struct Accessor
     {
         public uint BufferView;
         public uint Offset;
@@ -429,7 +429,7 @@ public class ZClusterReader : MonoBehaviour
     };
 
 
-    struct Attribute
+    public struct Attribute
     {
         public enum EType : uint
         {
@@ -445,13 +445,13 @@ public class ZClusterReader : MonoBehaviour
         public uint Offset;
     };
 
-    struct Subset
+    public struct Subset
     {
         public uint Offset;
         public uint Count;
     };
 
-    struct MeshInfo
+    public struct MeshInfo
     {
         public uint IndexSize;
         public uint MeshletCount;
@@ -460,7 +460,7 @@ public class ZClusterReader : MonoBehaviour
         public uint LastMeshletPrimCount;
     };
 
-    struct Meshlet
+    public struct Meshlet
     {
         public uint VertCount;
         public uint VertOffset;
@@ -468,21 +468,21 @@ public class ZClusterReader : MonoBehaviour
         public uint PrimOffset;
     };
 
-    struct PackedTriangle
+    public struct PackedTriangle
     {
         public uint i0;
         public uint i1;
         public uint i2;
     };
 
-    struct CullData
+    public struct CullData
     {
         public float4 BoundingSphere; // xyz = center, w = radius
         public byte[] NormalCone;     // xyz = axis, w = -cos(a + 90)
         public float  ApexOffset;     // apex = center - axis * offset
     };
 
-    struct BoundingSphere
+    public struct BoundingSphere
     {
         public float3 Center;          // Center of the sphere.
         public float Radius;           // Radius of the sphere.
@@ -639,7 +639,7 @@ public class ZClusterReader : MonoBehaviour
         }
     }
 
-    struct ClusterMesh
+    public struct ClusterMesh
     {
         public D3D12_INPUT_ELEMENT_DESC[] LayoutElems;
         public D3D12_INPUT_LAYOUT_DESC LayoutDesc;
@@ -707,7 +707,7 @@ public class ZClusterReader : MonoBehaviour
         //}
     }
 
-    enum DXGI_FORMAT : uint
+    public enum DXGI_FORMAT : uint
     {
         DXGI_FORMAT_UNKNOWN = 0,
         DXGI_FORMAT_R32G32B32A32_TYPELESS = 1,
