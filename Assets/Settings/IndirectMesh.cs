@@ -1,14 +1,29 @@
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.ZPipeline.ZUniversal;
 
+
+//TODO 相同材质一个脚本，收集Child下所有顶点相关数据，来进行合批
+//TODO 采用世界坐标存储顶点
+//TODO 视椎体剔除，遮挡剔除
+//TODO LOD
+//TODO 相同Mesh合批实例化
+//TODO 应用SubMesh
+//TODO Cluster剔除
 public class IndirectMesh : MonoBehaviour
 {
-    public bool Upload;
+    public bool UploadBuffer = false;
+    private bool ControlUpload = true;
+    private bool ControlRemove = false;
     private MeshRenderer meshRenderer;
     private Mesh mesh;
     private uint vertexBufferOffset;
+    private uint vertexBufferCount;
     private uint indexBufferOffset;
+    private uint indexBufferCount;
+    private uint meshLengthOffset;
+    private uint meshLengthCount;
     private uint clusterBufferOffset;
 
     void Awake()
@@ -20,66 +35,110 @@ public class IndirectMesh : MonoBehaviour
 
         vertexBufferOffset = IndirectDraw.Instance.vertexBufferLength;
         indexBufferOffset = IndirectDraw.Instance.indexBufferLength;
+        meshLengthOffset = IndirectDraw.Instance.DrawLength;
         clusterBufferOffset = IndirectDraw.Instance.clusterBufferLength;
 
-        //IndirectDraw.Instance.vertexBufferLength += (uint)(mesh.vertexCount + (64 - mesh.vertexCount % 64));
+        vertexBufferCount = (uint)mesh.vertexCount;
+        indexBufferCount = mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
+        meshLengthCount = Math.Max((mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64)) / 64 , 1);
+
         IndirectDraw.Instance.vertexBufferLength += (uint)mesh.vertexCount;
         IndirectDraw.Instance.indexBufferLength += mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
-        //IndirectDraw.Instance.clusterBufferLength += (uint)mesh.vertexCount;
 
         SetVertexBuffer();
         SetIndexBuffer();
         SetMeshOffset();
 
-        Upload = false;
+        UploadBuffer = true;
+        ControlUpload = false;
+        ControlRemove = true;
         IndirectDraw.Instance.CreateBuffer = true;
         IndirectDraw.Instance.SetBuffer = true;
     }
 
     void Update()
     {
-        if(Upload)
+        if(UploadBuffer && ControlUpload)
         {
             mesh = this.GetComponent<MeshFilter>().mesh;
 
             vertexBufferOffset = IndirectDraw.Instance.vertexBufferLength;
             indexBufferOffset = IndirectDraw.Instance.indexBufferLength;
+            meshLengthOffset = IndirectDraw.Instance.DrawLength;
             clusterBufferOffset = IndirectDraw.Instance.clusterBufferLength;
+
+            vertexBufferCount = (uint)mesh.vertexCount;
+            indexBufferCount = mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
+            meshLengthCount = Math.Max((mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64)) / 64 , 1);
 
             IndirectDraw.Instance.vertexBufferLength += (uint)mesh.vertexCount;
             IndirectDraw.Instance.indexBufferLength += mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
-            //IndirectDraw.Instance.clusterBufferLength += (uint)mesh.vertexCount;
 
             SetVertexBuffer();
             SetIndexBuffer();
             SetMeshOffset();
 
-            Upload = false;
+            ControlUpload = false;
+            ControlRemove = true;
             IndirectDraw.Instance.CreateBuffer = true;
             IndirectDraw.Instance.SetBuffer = true;
         }
+
+        if(!UploadBuffer && ControlRemove)
+        {
+            vertexBufferCount = (uint)mesh.vertexCount;
+            indexBufferCount = mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
+            meshLengthCount = Math.Max((mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64)) / 64 , 1);
+
+            IndirectDraw.Instance.vertexBufferLength -= (uint)mesh.vertexCount;
+            IndirectDraw.Instance.indexBufferLength -= mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
+
+            RemoveVertexBuffer();
+            RemoveIndexBuffer();
+            RemoveMeshOffset();
+
+            vertexBufferOffset = 0;
+            indexBufferOffset = 0;
+            meshLengthOffset = 0;
+            clusterBufferOffset = 0;
+
+            UploadBuffer = true;
+            ControlUpload = false;
+            ControlRemove = true;
+            IndirectDraw.Instance.CreateBuffer = true;
+            IndirectDraw.Instance.SetBuffer = true;
+        }
+
+        // var cmd = CommandBufferPool.Get();
+        // cmd.DrawProceduralIndirect(Matrix4x4.identity, meshRenderer.material, 0, MeshTopology.Triangles, IndirectDraw.Instance.ArgsBuffer, 0);
     }
 
     void OnEnable()
     {
-        mesh = this.GetComponent<MeshFilter>().mesh;
-
         meshRenderer = GetComponent<MeshRenderer>();
         meshRenderer.enabled = false;
 
+        mesh = this.GetComponent<MeshFilter>().mesh;
+
         vertexBufferOffset = IndirectDraw.Instance.vertexBufferLength;
         indexBufferOffset = IndirectDraw.Instance.indexBufferLength;
+        meshLengthOffset = IndirectDraw.Instance.DrawLength;
         clusterBufferOffset = IndirectDraw.Instance.clusterBufferLength;
+
+        vertexBufferCount = (uint)mesh.vertexCount;
+        indexBufferCount = mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
+        meshLengthCount = Math.Max((mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64)) / 64 , 1);
 
         IndirectDraw.Instance.vertexBufferLength += (uint)mesh.vertexCount;
         IndirectDraw.Instance.indexBufferLength += mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
-        //IndirectDraw.Instance.clusterBufferLength += (uint)mesh.vertexCount;
 
         SetVertexBuffer();
         SetIndexBuffer();
         SetMeshOffset();
 
-        Upload = false;
+        UploadBuffer = true;
+        ControlUpload = false;
+        ControlRemove = true;
         IndirectDraw.Instance.CreateBuffer = true;
         IndirectDraw.Instance.SetBuffer = true;
     }
@@ -91,21 +150,13 @@ public class IndirectMesh : MonoBehaviour
         uint preLength = (uint)VertexBufferArray.Length;
         uint length = preLength + (uint)mesh.vertexCount;
 
-        //保证顶点按64倍传输，多余的填入顶点最后一位
-        //uint nullLength = preLength + (uint)(mesh.vertexCount + (64 - mesh.vertexCount % 64));
-
-        //VertexBuffer[] VB = new VertexBuffer[nullLength];
         VertexBuffer[] VB = new VertexBuffer[length];
-
 
         for(int i = 0; i < preLength; i++)
         {
             VB[i] = VertexBufferArray[i];
         }
 
-        //TODO 缩放 旋转
-        //不传矩阵，实例化才传
-        //存下世界坐标，awake时候传
         for(uint i = preLength; i < length; i++)
         {
             VB[i].Position = mesh.vertices[i - preLength] + transform.position;
@@ -113,11 +164,6 @@ public class IndirectMesh : MonoBehaviour
             VB[i].Texcoord = mesh.uv[i - preLength];
             VB[i].Tangent = mesh.tangents[i - preLength] +  new Vector4(transform.position.x, transform.position.y, transform.position.z, 0.0f);
         }
-
-        // for(uint i = length; i < nullLength; i++)
-        // {
-        //     VB[i] = VB[length - 1];
-        // }
 
         IndirectDraw.Instance.VertexBufferArray = VB;
     }
@@ -132,7 +178,6 @@ public class IndirectMesh : MonoBehaviour
         uint nullLength = preLength + mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
 
         uint[] IB = new uint[nullLength];
-        //uint[] IB = new uint[length];
 
         for(int i = 0; i < preLength; i++)
         {
@@ -154,8 +199,8 @@ public class IndirectMesh : MonoBehaviour
 
     public void SetMeshOffset()
     {
-        uint DrawLength = Math.Max(mesh.GetIndexCount(0) / 64, 1);
-        IndirectDraw.Instance.DrawLength += DrawLength;
+        uint DrawLength = Math.Max((mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64)) / 64 , 1);
+
 
         uint preLength = (uint)IndirectDraw.Instance.MeshOffsetArray.Length;
         uint length = preLength + DrawLength;
@@ -173,11 +218,88 @@ public class IndirectMesh : MonoBehaviour
             MO[i].vertexCount = (uint)mesh.vertexCount;
             MO[i].indexStart = indexBufferOffset;
             MO[i].indexCount = mesh.GetIndexCount(0);
+            MO[i].meshLength = IndirectDraw.Instance.DrawLength;
         }
 
+        IndirectDraw.Instance.DrawLength += DrawLength;
         IndirectDraw.Instance.MeshOffsetArray = MO;
     }
 
+    public void RemoveVertexBuffer()
+    {
+        var VertexBufferArray = IndirectDraw.Instance.VertexBufferArray;
+
+        uint preLength = (uint)VertexBufferArray.Length;
+        uint length = preLength - vertexBufferCount;
+
+        VertexBuffer[] VB = new VertexBuffer[length];
+
+        for(int i = 0; i < vertexBufferOffset; i++)
+        {
+            VB[i] = VertexBufferArray[i];
+        }
+
+        for(uint i = vertexBufferOffset; i < length; i++)
+        {
+            VB[i] = VertexBufferArray[i + vertexBufferCount];
+        }
+
+        IndirectDraw.Instance.VertexBufferArray = VB;
+    }
+
+    public void RemoveIndexBuffer()
+    {
+        var IndexBufferArray = IndirectDraw.Instance.IndexBufferArray;
+
+        uint preLength = (uint)IndexBufferArray.Length;
+        uint length = preLength - indexBufferCount;
+
+        uint[] IB = new uint[length];
+
+        for(int i = 0; i < indexBufferOffset; i++)
+        {
+            IB[i] = IndexBufferArray[i];
+        }
+
+        for(uint i = indexBufferOffset; i < length; i++)
+        {
+            IB[i] = IndexBufferArray[i + indexBufferCount];
+        }
+
+        IndirectDraw.Instance.IndexBufferArray = IB;
+    }
+
+    public void RemoveMeshOffset()
+    {
+        uint DrawLength = Math.Max((mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64)) / 64 , 1);
+
+        var MeshOffsetArray = IndirectDraw.Instance.MeshOffsetArray;
+
+        uint preLength = (uint)MeshOffsetArray.Length;
+        uint length = preLength - meshLengthCount;
+
+        MeshOffset[] MS = new MeshOffset[length];
+
+        for(int i = 0; i < meshLengthOffset; i++)
+        {
+            MS[i] = MeshOffsetArray[i];
+        }
+
+        for(uint i = meshLengthOffset; i < length; i++)
+        {
+            MS[i] = MeshOffsetArray[i + meshLengthCount];
+            MS[i].vertexStart -= vertexBufferCount;
+            MS[i].vertexCount -= vertexBufferCount;
+            MS[i].indexStart -= indexBufferCount;
+            MS[i].indexCount -= indexBufferCount;
+            MS[i].meshLength -= DrawLength;
+        }
+
+        //ResetMeshOffset
+
+        IndirectDraw.Instance.DrawLength -= DrawLength;
+        IndirectDraw.Instance.MeshOffsetArray = MS;
+    }
     //TODO
     // public void SetClusterBuffer()
     // {

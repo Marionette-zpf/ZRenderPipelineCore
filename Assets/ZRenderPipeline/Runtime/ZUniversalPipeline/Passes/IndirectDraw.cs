@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using UnityEditor;
 
@@ -6,7 +7,6 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
     [InitializeOnLoad]
     public class IndirectDraw : ZScriptableRendererPass
     {
-        public Mesh ClusterMesh;
         public bool Upload;
         public bool Clear;
         public bool CreateBuffer;
@@ -68,6 +68,10 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             indexBufferLength = 0;
             clusterBufferLength = 0;
             DrawLength = 0;
+
+            VertexBufferArray = new VertexBuffer[0];
+            IndexBufferArray = new uint[0];
+            MeshOffsetArray = new MeshOffset[0];
         }
 
         public override void ExecuRendererPass(ScriptableRenderContext context, CommandBuffer cmd, ref ZRenderingData renderingData)
@@ -80,8 +84,6 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
             if(Upload)
             {
-                SetVertexBuffer();
-                SetIndexBuffer();
                 SetClusterBuffer();
                 SetClusterIndexBuffer();
                 SetCullDataBuffer();
@@ -128,7 +130,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             SetArgsBuffer();
             cmd.SetBufferData(ArgsBuffer, ArgsArray);
 
-            int GroupX = (int)vertexBufferLength / 64;
+            int GroupX = Math.Max((int)vertexBufferLength / 64, 1);
 
             cmd.DispatchCompute(ClusterCullCS, kernelIndex, GroupX, 1, 1);
 
@@ -177,38 +179,6 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             MeshOffsetBuffer = new ComputeBuffer((int)DrawLength, Marshal.SizeOf<MeshOffset>(), ComputeBufferType.Structured);
         }
 
-        public void SetVertexBuffer()
-        {
-            //vertexBufferLength += (uint)ClusterMesh.vertexCount;
-
-            // uint Length = vertexBufferLength;
-
-            // VertexBufferArray = new VertexBuffer[Length];
-
-            // for(int i = 0; i < Length; i++)
-            // {
-            //     VertexBufferArray[i].Position = ClusterMesh.vertices[i];
-            //     VertexBufferArray[i].Normal = ClusterMesh.normals[i];
-            //     VertexBufferArray[i].Texcoord = ClusterMesh.uv[i];
-            //     VertexBufferArray[i].Tangent = ClusterMesh.tangents[i];
-            // }
-
-        }
-
-        public void SetIndexBuffer()
-        {
-            //indexBufferLength += ClusterMesh.GetIndexCount(0);
-
-            // uint Length = indexBufferLength;
-
-            // IndexBufferArray = new uint[Length];
-
-            // for(int i = 0; i < Length; i++)
-            // {
-            //     IndexBufferArray[i] = (uint)ClusterMesh.GetIndices(0)[i];
-            // }
-        }
-
         //TODO
         public void SetClusterBuffer()
         {
@@ -225,8 +195,6 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         public void SetClusterIndexBuffer()
         {
             ClusterIndexBuffer = new ComputeBuffer(64 * 1, Marshal.SizeOf<int>(), ComputeBufferType.Raw); //ClusterCount * ClusterVertexCount
-
-            //ClusterIndexArray = new int {0};
         }
 
         //TODO
@@ -256,8 +224,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
         public void SetArgsBuffer()
         {
-            ArgsArray = new uint[4]{64, indexBufferLength / 64, ClusterMesh.GetIndexStart(0), ClusterMesh.GetBaseVertex(0)}; //ClusterVertexCount:64, ClusterCount 0, ClusterVertexCount * ClusterCount
-            //ArgsArray = new uint[4]{64, indexBufferLength / 64 + 2, 0, 0}; //ClusterVertexCount:64, ClusterCount 0, ClusterVertexCount * ClusterCount
+            ArgsArray = new uint[4]{64, indexBufferLength / 64, 0, 0}; //ClusterVertexCount:64, ClusterCount 0, ClusterVertexCount * ClusterCount
   
             ArgsBuffer = new ComputeBuffer(1, ArgsArray.Length * Marshal.SizeOf<uint>(), ComputeBufferType.IndirectArguments);
         }
@@ -278,6 +245,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         public uint vertexCount;
         public uint indexStart;
         public uint indexCount;
+        public uint meshLength;
     }
 
     public struct Cluster

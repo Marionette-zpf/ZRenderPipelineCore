@@ -34,11 +34,12 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
             uint vertexCount;
             uint indexStart;
             uint indexCount;
+            uint meshLength;
         };
 
 
-        StructuredBuffer<Vertex>   VertexBuffer;
-        StructuredBuffer<uint>   IndexBuffer;
+        StructuredBuffer<Vertex>       VertexBuffer;
+        StructuredBuffer<uint>         IndexBuffer;
         StructuredBuffer<MeshOffset>   MeshOffsetBuffer;
 
         TEXTURE2D(_MainTex);	SAMPLER(sampler_MainTex);
@@ -58,7 +59,7 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
             struct Attributes
             {
                 uint vertexID : SV_VertexID; // 0 - 63
-                uint ClusterInstance : SV_InstanceID; // 0 - (instnaceCount - 1)
+                uint ClusterInstanceID : SV_InstanceID; // 0 - (instanceCount - 1)
             };
 
             struct Varyings
@@ -68,19 +69,20 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
                 float4 positionCS : SV_POSITION;
             };
 
+            Vertex GetVertexAttribute(uint vertexID, uint ClusterInstanceID)
+            {   
+                MeshOffset meshOffset = MeshOffsetBuffer[ClusterInstanceID];
+                uint index = IndexBuffer[vertexID + (ClusterInstanceID - meshOffset.meshLength) * 63 + meshOffset.indexStart];
+
+                Vertex vertexData = VertexBuffer[index + meshOffset.vertexStart];
+                return vertexData;
+            }
+
             Varyings vert (Attributes input)
             {
                 Varyings output;
 
-                MeshOffset meshOffset = MeshOffsetBuffer[input.ClusterInstance];
-                //meshOffset = MeshOffsetBuffer[36];
-                uint index = IndexBuffer[input.vertexID + input.ClusterInstance * 63 + meshOffset.indexStart]; // 2368 515
-                index = IndexBuffer[input.vertexID + input.ClusterInstance * 63 + input.ClusterInstance == 37 ? 2368 : 0.0]; // 2368 515
-
-                //Vertex vertexOS = VertexBuffer[index + meshOffset.vertexStart];
-                Vertex vertexOS = VertexBuffer[index + input.ClusterInstance == 37 ? 515 : 0];
-
-
+                Vertex vertexOS = GetVertexAttribute(input.vertexID, input.ClusterInstanceID);
 
                 output.positionCS = TransformWorldToHClip(vertexOS.Position);
                 output.uv = vertexOS.Texcoord;
