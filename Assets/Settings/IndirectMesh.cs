@@ -113,36 +113,6 @@ public class IndirectMesh : MonoBehaviour
         // cmd.DrawProceduralIndirect(Matrix4x4.identity, meshRenderer.material, 0, MeshTopology.Triangles, IndirectDraw.Instance.ArgsBuffer, 0);
     }
 
-    // void OnEnable()
-    // {
-    //     meshRenderer = GetComponent<MeshRenderer>();
-    //     meshRenderer.enabled = false;
-
-    //     mesh = this.GetComponent<MeshFilter>().mesh;
-
-    //     vertexBufferOffset = IndirectDraw.Instance.vertexBufferLength;
-    //     indexBufferOffset = IndirectDraw.Instance.indexBufferLength;
-    //     meshLengthOffset = IndirectDraw.Instance.DrawLength;
-    //     clusterBufferOffset = IndirectDraw.Instance.clusterBufferLength;
-
-    //     vertexBufferCount = (uint)mesh.vertexCount;
-    //     indexBufferCount = mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
-    //     meshLengthCount = Math.Max((mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64)) / 64 , 1);
-
-    //     IndirectDraw.Instance.vertexBufferLength += (uint)mesh.vertexCount;
-    //     IndirectDraw.Instance.indexBufferLength += mesh.GetIndexCount(0) + (64 - mesh.GetIndexCount(0) % 64);
-
-    //     SetVertexBuffer();
-    //     SetIndexBuffer();
-    //     SetMeshOffset();
-
-    //     UploadBuffer = true;
-    //     ControlUpload = false;
-    //     ControlRemove = true;
-    //     IndirectDraw.Instance.CreateBuffer = true;
-    //     IndirectDraw.Instance.SetBuffer = true;
-    // }
-
     public void SetVertexBuffer()
     {
         var VertexBufferArray = IndirectDraw.Instance.VertexBufferArray;

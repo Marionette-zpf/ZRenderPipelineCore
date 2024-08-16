@@ -7,19 +7,17 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
     [InitializeOnLoad]
     public class IndirectDraw : ZScriptableRendererPass
     {
-        public bool Upload;
         public bool Clear;
         public bool CreateBuffer;
         public bool SetBuffer;
+        public bool DebugBuffer;
         public Material mat;
         public ComputeShader ClusterCullCS;
 
         public uint vertexBufferLength = 0;
         public uint indexBufferLength = 0;
         public uint clusterBufferLength = 0;
-
         public uint DrawLength = 0;
-        public MeshOffset[] MeshOffsetArray = new MeshOffset[1];
 
         //ComputeBuffer
         public ComputeBuffer VertexBuffer;
@@ -29,8 +27,11 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         public ComputeBuffer CullDataBuffer;
         private ComputeBuffer MeshOffsetBuffer;
         private ComputeBuffer ConstantBuffer;
+        private ComputeBuffer CullResultBuffer;
+        private ComputeBuffer CullResultIndexBuffer;
         public ComputeBuffer ArgsBuffer;
 
+        //BufferInfo
         private static readonly int VertexBufferInfo = Shader.PropertyToID("VertexBuffer");  
         private static readonly int IndexBufferInfo = Shader.PropertyToID("IndexBuffer");  
         private static readonly int ClusterBufferInfo = Shader.PropertyToID("ClusterBuffer");
@@ -38,13 +39,17 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         private static readonly int CullDataBufferInfo = Shader.PropertyToID("CullDataBuffer");  
         private static readonly int MeshOffsetBufferInfo = Shader.PropertyToID("MeshOffsetBuffer");  
         private static readonly int ConstantBufferInfo = Shader.PropertyToID("ConstantBuffer");  
+        private static readonly int CullResultBufferInfo = Shader.PropertyToID("CullResultBuffer");  
+        private static readonly int CullResultIndexBufferInfo = Shader.PropertyToID("CullResultIndexBuffer");  
 
+        //BufferArray
         public VertexBuffer[] VertexBufferArray;
         public uint[] IndexBufferArray;
         public Cluster[] ClusterArray;
         public uint[] ClusterIndexArray = new uint[64];
         public ClusterCullData[] CullDataBufferArray;
         public ClusterConstantBuffer[] ConstantBufferArray = new ClusterConstantBuffer[1];
+        public MeshOffset[] MeshOffsetArray = new MeshOffset[1];
         public uint[] ArgsArray = { new uint() };
 
         private int kernelIndex;
@@ -62,7 +67,6 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
         public override void Create()
         {
-            Upload = true;
             CreateBuffer = true;
             vertexBufferLength = 0;
             indexBufferLength = 0;
@@ -82,22 +86,15 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
                 return;
             }
 
-            if(Upload)
-            {
-                SetClusterBuffer();
-                SetClusterIndexBuffer();
-                SetCullDataBuffer();
-                SetClusterConstantBuffer();
-
-                Upload = false;
-            }
-
             if(CreateBuffer)
             {
                 CreateVertexBuffer();
                 CreateIndexBuffer();
                 CreateMeshOffsetBuffer();
-                
+                CreateCullResultConstantBuffer();
+                CreateCullResultIndexBuffer();
+                CreateConstantBuffer();
+
                 CreateBuffer = false;
             }
 
@@ -105,9 +102,9 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             {
                 cmd.SetBufferData(VertexBuffer, VertexBufferArray);
                 cmd.SetBufferData(IndexBuffer, IndexBufferArray);
-                cmd.SetBufferData(ClusterBuffer, ClusterArray);
-                cmd.SetBufferData(ClusterIndexBuffer, ClusterIndexArray);
-                cmd.SetBufferData(CullDataBuffer, CullDataBufferArray);
+                //cmd.SetBufferData(ClusterBuffer, ClusterArray);
+                //cmd.SetBufferData(ClusterIndexBuffer, ClusterIndexArray);
+                //cmd.SetBufferData(CullDataBuffer, CullDataBufferArray);
                 cmd.SetBufferData(ConstantBuffer, ConstantBufferArray);
                 cmd.SetBufferData(MeshOffsetBuffer, MeshOffsetArray);
 
@@ -115,26 +112,45 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
                 cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, VertexBufferInfo, VertexBuffer);
                 cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, IndexBufferInfo, IndexBuffer);
-                cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, ClusterBufferInfo, ClusterBuffer);
-                cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, ClusterIndexBufferInfo, ClusterIndexBuffer);
-                cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, CullDataBufferInfo, CullDataBuffer);
-                cmd.SetComputeConstantBufferParam(ClusterCullCS, ConstantBufferInfo, ConstantBuffer, 0, Marshal.SizeOf<ClusterConstantBuffer>());
+                // cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, ClusterBufferInfo, ClusterBuffer);
+                // cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, ClusterIndexBufferInfo, ClusterIndexBuffer);
+                // cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, CullDataBufferInfo, CullDataBuffer);
+                cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, MeshOffsetBufferInfo, MeshOffsetBuffer);
+                cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, CullResultIndexBufferInfo, CullResultIndexBuffer);
+                cmd.SetComputeBufferParam(ClusterCullCS, kernelIndex, CullResultBufferInfo, CullResultBuffer);
+                cmd.SetComputeConstantBufferParam(ClusterCullCS, ConstantBufferInfo, ConstantBuffer, Marshal.SizeOf<uint>(), Marshal.SizeOf<ClusterConstantBuffer>());
 
                 cmd.SetGlobalBuffer(VertexBufferInfo, VertexBuffer);
-                cmd.SetGlobalBuffer(IndexBufferInfo, IndexBuffer);
+                cmd.SetGlobalBuffer(CullResultIndexBufferInfo, CullResultIndexBuffer);
                 cmd.SetGlobalBuffer(MeshOffsetBufferInfo, MeshOffsetBuffer);
-                
+
                 SetBuffer = false;
             }
+
+            //ComputeBuffer.CopyCount(CullResultConstantBuffer, ArgsBuffer, 0);
 
             SetArgsBuffer();
             cmd.SetBufferData(ArgsBuffer, ArgsArray);
 
-            int GroupX = Math.Max((int)vertexBufferLength / 64, 1);
+            int GroupX = Math.Max((int)indexBufferLength / 64, 1);
 
             cmd.DispatchCompute(ClusterCullCS, kernelIndex, GroupX, 1, 1);
 
             cmd.DrawProceduralIndirect(Matrix4x4.identity, mat, 0, MeshTopology.Triangles, ArgsBuffer, 0);
+
+            if(DebugBuffer)
+            {
+                int[] ResultIndex = new int[indexBufferLength];
+                CullResultIndexBuffer.GetData(ResultIndex);
+
+
+                for(int i = 0; i < indexBufferLength; i++)
+                {
+                    Debug.Log(ResultIndex[i]);
+                }
+
+                DebugBuffer = false;
+            }
 
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();       
@@ -160,8 +176,12 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
             if(ClusterBuffer != null) ClusterBuffer.Dispose();
             if(ClusterIndexBuffer != null) ClusterIndexBuffer.Dispose();
             if(CullDataBuffer != null) CullDataBuffer.Dispose();
+            if(MeshOffsetBuffer !=null) MeshOffsetBuffer.Dispose();
             if(ConstantBuffer != null) ConstantBuffer.Dispose();
+            if(CullResultBuffer != null) CullResultBuffer.Dispose();
+            if(CullResultIndexBuffer != null) CullResultIndexBuffer.Dispose();
             if(ArgsBuffer != null) ArgsBuffer.Dispose();
+
         }
 
         public void CreateVertexBuffer()
@@ -177,6 +197,16 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         public void CreateMeshOffsetBuffer()
         {
             MeshOffsetBuffer = new ComputeBuffer((int)DrawLength, Marshal.SizeOf<MeshOffset>(), ComputeBufferType.Structured);
+        }
+
+        public void CreateCullResultConstantBuffer()
+        {
+            CullResultBuffer = new ComputeBuffer(1, 4 * Marshal.SizeOf<uint>(), ComputeBufferType.Structured);
+        }
+
+        public void CreateCullResultIndexBuffer()
+        {
+            CullResultIndexBuffer = new ComputeBuffer((int)indexBufferLength, Marshal.SizeOf<uint>(), ComputeBufferType.Append);
         }
 
         //TODO
@@ -212,7 +242,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         }
 
         //TODO
-        public void SetClusterConstantBuffer()
+        public void CreateConstantBuffer()
         {
             ConstantBuffer = new ComputeBuffer(1, Marshal.SizeOf<ClusterConstantBuffer>(), ComputeBufferType.Constant);
 
@@ -226,7 +256,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         {
             ArgsArray = new uint[4]{64, indexBufferLength / 64, 0, 0}; //ClusterVertexCount:64, ClusterCount 0, ClusterVertexCount * ClusterCount
   
-            ArgsBuffer = new ComputeBuffer(1, ArgsArray.Length * Marshal.SizeOf<uint>(), ComputeBufferType.IndirectArguments);
+            ArgsBuffer = new ComputeBuffer(1, 4 * Marshal.SizeOf<uint>(), ComputeBufferType.IndirectArguments);
         }
 
     }

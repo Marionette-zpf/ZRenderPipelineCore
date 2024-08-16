@@ -19,7 +19,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
                 if (pass == null)
                     continue;
 
-                pass.Create();
+                //pass.Create();
 
                 m_RendererPasses.Add(pass.GetType(), new ZScriptableRendererPassData() { RendererPass = pass, IsValid = false });
             }

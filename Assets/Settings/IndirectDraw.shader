@@ -39,7 +39,7 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
 
 
         StructuredBuffer<Vertex>       VertexBuffer;
-        StructuredBuffer<uint>         IndexBuffer;
+        StructuredBuffer<uint>         CullResultIndexBuffer;
         StructuredBuffer<MeshOffset>   MeshOffsetBuffer;
 
         TEXTURE2D(_MainTex);	SAMPLER(sampler_MainTex);
@@ -72,7 +72,7 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
             Vertex GetVertexAttribute(uint vertexID, uint ClusterInstanceID)
             {   
                 MeshOffset meshOffset = MeshOffsetBuffer[ClusterInstanceID];
-                uint index = IndexBuffer[vertexID + (ClusterInstanceID - meshOffset.meshLength) * 63 + meshOffset.indexStart];
+                uint index = CullResultIndexBuffer[vertexID + (ClusterInstanceID - meshOffset.meshLength) * 63 + meshOffset.indexStart];
 
                 Vertex vertexData = VertexBuffer[index + meshOffset.vertexStart];
                 return vertexData;
