@@ -16,6 +16,8 @@ public class ZClusterReader : MonoBehaviour
     private byte[] m_buffer;
     private Mesh[] m_meshes;
 
+    private BoundingSphere m_boundingSphere;
+
     [ContextMenu("测试读取 Cluster 数据")]
     public void Test01()
     {
@@ -136,11 +138,11 @@ public class ZClusterReader : MonoBehaviour
             // Determine the number of unique Buffer Views associated with the vertex attributes & copy vertex buffers.
             var vbMap = new List<uint>();
 
-            //mesh.LayoutDesc.pInputElementDescs = mesh.LayoutElems;
-            //mesh.LayoutDesc.NumElements = 0;
+            mesh.LayoutDesc.pInputElementDescs = mesh.LayoutElems;
+            mesh.LayoutDesc.NumElements = 0;
 
             mesh.VertexStrides = new List<uint>();
-            mesh.Vertices = new List<byte>();
+            mesh.Vertices = new List<byte[]>();
 
             for (uint j = 0; j < Attribute.EType.Count.GetHashCode(); ++j)
             {
@@ -159,27 +161,31 @@ public class ZClusterReader : MonoBehaviour
                 Span<byte> verts = spanBuffer.Slice((int)bufferView.Offset, (int)bufferView.Size);//  MakeSpan(m_buffer.data() + bufferView.Offset, bufferView.Size);
 
                 mesh.VertexStrides.Add(accessor.Stride);
-                mesh.Vertices.AddRange(verts.ToArray());
+                mesh.Vertices.Add(verts.ToArray());
                 mesh.VertexCount = (uint)verts.Length / accessor.Stride;
             }
 
 
             // Populate the vertex buffer metadata from accessors.
-            //for (uint32_t j = 0; j < Attribute::Count; ++j)
-            //{
-            //    if (meshView.Attributes[j] == -1)
-            //        continue;
 
-            //    Accessor & accessor = accessors[meshView.Attributes[j]];
+            mesh.LayoutElems = new D3D12_INPUT_ELEMENT_DESC[Attribute.EType.Count.GetHashCode()];
 
-            //    // Determine which vertex buffer index holds this attribute's data
-            //    auto it = std::find(vbMap.begin(), vbMap.end(), accessor.BufferView);
+            for (uint j = 0; j < Attribute.EType.Count.GetHashCode(); ++j)
+            {
+                if (meshView.Attributes[j] == 4294967295)
+                    continue;
 
-            //    D3D12_INPUT_ELEMENT_DESC desc = c_elementDescs[j];
-            //    desc.InputSlot = static_cast<uint32_t>(std::distance(vbMap.begin(), it));
+                Accessor accessor = accessors[meshView.Attributes[j]];
 
-            //    mesh.LayoutElems[mesh.LayoutDesc.NumElements++] = desc;
-            //}
+
+                // Determine which vertex buffer index holds this attribute's data
+                var it = vbMap.Find(x => x == accessor.BufferView);
+
+                D3D12_INPUT_ELEMENT_DESC desc = c_elementDescs[j];
+                desc.InputSlot = it;
+
+                mesh.LayoutElems[mesh.LayoutDesc.NumElements++] = desc;
+            }
 
 
             // Meshlet data
@@ -228,11 +234,11 @@ public class ZClusterReader : MonoBehaviour
 
                 mesh.PrimitiveIndices = new PackedTriangle[accessor.Count];
 
-                var packedTriangleSize = Marshal.SizeOf(typeof(PackedTriangle));
+                var packedTriangleSize = 4;// Marshal.SizeOf(typeof(PackedTriangle));
 
                 for (int packedTriangleIndex = 0; packedTriangleIndex < mesh.PrimitiveIndices.Length; packedTriangleIndex++)
                 {
-                    mesh.PrimitiveIndices[packedTriangleIndex] = MemoryPackSerializer.Deserialize<PackedTriangle>(spanBuffer.Slice((int)bufferView.Offset + packedTriangleIndex * packedTriangleSize));
+                    mesh.PrimitiveIndices[packedTriangleIndex] = ConvertBytesToPackedTriangle(spanBuffer.Slice((int)bufferView.Offset + packedTriangleIndex * packedTriangleSize, 4));
                 }
             }
 
@@ -243,78 +249,139 @@ public class ZClusterReader : MonoBehaviour
 
                 mesh.CullingData = new CullData[accessor.Count];
 
+                int cullDataSize = sizeof(float) * 4 + 4 + sizeof(float);
+
                 for (int cullIndex = 0; cullIndex < mesh.CullingData.Length; cullIndex++)
                 {
                     int offset = 0;
+                    int bufferOffset = (int)bufferView.Offset + cullDataSize * cullIndex;
 
                     mesh.CullingData[cullIndex].NormalCone = new byte[4];
 
-                    mesh.CullingData[cullIndex].BoundingSphere = MemoryPackSerializer.Deserialize<float4>(spanBuffer.Slice((int)bufferView.Offset, sizeof(float) * 4));
+                    mesh.CullingData[cullIndex].BoundingSphere = MemoryPackSerializer.Deserialize<float4>(spanBuffer.Slice(bufferOffset, sizeof(float) * 4));
 
                     offset += sizeof(float) * 4;
 
-                    mesh.CullingData[cullIndex].NormalCone = spanBuffer.Slice((int)bufferView.Offset + offset, 4).ToArray();
+                    mesh.CullingData[cullIndex].NormalCone = spanBuffer.Slice(bufferOffset + offset, 4).ToArray();
 
                     offset += 4;
 
-                    mesh.CullingData[cullIndex].ApexOffset = MemoryPackSerializer.Deserialize<float>(spanBuffer.Slice((int)bufferView.Offset + offset, sizeof(float)));
+                    mesh.CullingData[cullIndex].ApexOffset = MemoryPackSerializer.Deserialize<float>(spanBuffer.Slice(bufferOffset + offset, sizeof(float)));
+                }
+            }
+        }
+
+        // Build bounding spheres for each mesh
+        for (uint i = 0; i < m_meshes.Length; ++i)
+        {
+            ref var m = ref m_meshes[i];
+
+            uint vbIndexPos = 0;
+
+            // Find the index of the vertex buffer of the position attribute
+            for (uint j = 1; j < m.LayoutDesc.NumElements; ++j)
+            {
+                ref var desc = ref m.LayoutElems[j];
+                if (string.Equals(desc.SemanticName, "POSITION"))
+                {
+                    vbIndexPos = j;
+                    break;
                 }
             }
 
+            // Find the byte offset of the position attribute with its vertex buffer
+            uint positionOffset = 0;
 
-            //// Build bounding spheres for each mesh
-            //for (uint32_t i = 0; i < static_cast<uint32_t>(m_meshes.size()); ++i)
-            //{
-            //    auto & m = m_meshes[i];
+            for (uint j = 0; j < m.LayoutDesc.NumElements; ++j)
+            {
+                ref var desc = ref m.LayoutElems[j];
+                if (string.Equals(desc.SemanticName, "POSITION"))
+                {
+                    break;
+                }
 
-            //    uint32_t vbIndexPos = 0;
+                if (desc.InputSlot == vbIndexPos)
+                {
+                    positionOffset += GetFormatSize(m.LayoutElems[j].Format);
+                }
+            }
 
-            //    // Find the index of the vertex buffer of the position attribute
-            //    for (uint32_t j = 1; j < m.LayoutDesc.NumElements; ++j)
-            //    {
-            //        auto & desc = m.LayoutElems[j];
-            //        if (strcmp(desc.SemanticName, "POSITION") == 0)
-            //        {
-            //            vbIndexPos = j;
-            //            break;
-            //        }
-            //    }
+            float3[] v0 = new float3[m.VertexCount];
+            Span<byte> spanVertex = new Span<byte>(m.Vertices[(int)vbIndexPos]);
+            int float3Size = Marshal.SizeOf(typeof(float3));
+            uint stride = m.VertexStrides[(int)vbIndexPos];
 
-            //    // Find the byte offset of the position attribute with its vertex buffer
-            //    uint32_t positionOffset = 0;
+            for (int vertexIndex = 0; vertexIndex < v0.Length; vertexIndex++)
+            {
+                v0[vertexIndex] = MemoryPackSerializer.Deserialize<float3>(spanVertex.Slice((int)positionOffset + vertexIndex * (int)stride, float3Size));
+            }
+                
 
-            //    for (uint32_t j = 0; j < m.LayoutDesc.NumElements; ++j)
-            //    {
-            //        auto & desc = m.LayoutElems[j];
-            //        if (strcmp(desc.SemanticName, "POSITION") == 0)
-            //        {
-            //            break;
-            //        }
+            BoundingSphere.CreateFromPoints(ref m.BoundingSphere, m.VertexCount, v0, stride);
 
-            //        if (desc.InputSlot == vbIndexPos)
-            //        {
-            //            positionOffset += GetFormatSize(m.LayoutElems[j].Format);
-            //        }
-            //    }
-
-            //    XMFLOAT3* v0 = reinterpret_cast<XMFLOAT3*>(m.Vertices[vbIndexPos].data() + positionOffset);
-            //    uint32_t stride = m.VertexStrides[vbIndexPos];
-
-            //    BoundingSphere::CreateFromPoints(m.BoundingSphere, m.VertexCount, v0, stride);
-
-            //    if (i == 0)
-            //    {
-            //        m_boundingSphere = m.BoundingSphere;
-            //    }
-            //    else
-            //    {
-            //        BoundingSphere::CreateMerged(m_boundingSphere, m_boundingSphere, m.BoundingSphere);
-            //    }
-            //}
+            if (i == 0)
+            {
+                m_boundingSphere = m.BoundingSphere;
+            }
+            else
+            {
+                BoundingSphere.CreateMerged(ref m_boundingSphere, ref m_boundingSphere, ref m.BoundingSphere);
+            }
         }
 
         Debug.LogWarning("FileHeader : " + header.ToString());
     }
+
+    private PackedTriangle ConvertBytesToPackedTriangle(ReadOnlySpan<byte> bytes)
+    {
+        PackedTriangle triangle = new PackedTriangle();
+
+        int value = BitConverter.ToInt32(bytes);
+
+        triangle.i0 = (uint)(value & 0x3FF); 
+        triangle.i1 = (uint)((value >> 10) & 0x3FF);
+        triangle.i2 = (uint)((value >> 20) & 0x3FF);
+
+        return triangle;
+    }
+
+    private uint GetFormatSize(DXGI_FORMAT format)
+    {
+        switch (format)
+        {
+            case DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT : return 16;
+            case DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT    : return 12;
+            case DXGI_FORMAT.DXGI_FORMAT_R32G32_FLOAT       : return 8;
+            case DXGI_FORMAT.DXGI_FORMAT_R32_FLOAT          : return 4;
+            default: throw new Exception("Unimplemented type");
+        }
+    }
+
+    static D3D12_INPUT_ELEMENT_DESC[] c_elementDescs =
+    {
+        new D3D12_INPUT_ELEMENT_DESC { SemanticName = "POSITION",  SemanticIndex = 0, Format = DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT, InputSlot = 0, AlignedByteOffset = 0xffffffff, InstanceDataStepRate = 1 },
+        new D3D12_INPUT_ELEMENT_DESC { SemanticName = "NORMAL",    SemanticIndex = 0, Format = DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT, InputSlot = 0, AlignedByteOffset = 0xffffffff, InstanceDataStepRate = 1 },
+        new D3D12_INPUT_ELEMENT_DESC { SemanticName = "TEXCOORD",  SemanticIndex = 0, Format = DXGI_FORMAT.DXGI_FORMAT_R32G32_FLOAT,    InputSlot = 0, AlignedByteOffset = 0xffffffff, InstanceDataStepRate = 1 },
+        new D3D12_INPUT_ELEMENT_DESC { SemanticName = "TANGENT",   SemanticIndex = 0, Format = DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT, InputSlot = 0, AlignedByteOffset = 0xffffffff, InstanceDataStepRate = 1 },
+        new D3D12_INPUT_ELEMENT_DESC { SemanticName = "BITANGENT", SemanticIndex = 0, Format = DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT, InputSlot = 0, AlignedByteOffset = 0xffffffff, InstanceDataStepRate = 1 }
+    };
+
+    struct D3D12_INPUT_ELEMENT_DESC
+    {
+        public string SemanticName;
+        public uint SemanticIndex;
+        public DXGI_FORMAT Format;
+        public uint InputSlot;
+        public uint AlignedByteOffset;
+        //D3D12_INPUT_CLASSIFICATION InputSlotClass;
+        public uint InstanceDataStepRate;
+    };
+
+    struct D3D12_INPUT_LAYOUT_DESC
+    {
+        public D3D12_INPUT_ELEMENT_DESC[] pInputElementDescs;
+        public uint NumElements;
+    };
 
     struct FileHeader
     {
@@ -415,15 +482,172 @@ public class ZClusterReader : MonoBehaviour
         public float  ApexOffset;     // apex = center - axis * offset
     };
 
+    struct BoundingSphere
+    {
+        public float3 Center;          // Center of the sphere.
+        public float Radius;           // Radius of the sphere.
+
+        public static void CreateFromPoints(ref BoundingSphere Out, uint Count, float3[] pPoints, uint Stride)
+        {
+            //assert(Count > 0);
+            //assert(pPoints);
+
+            if (Count <= 0 || pPoints == null)
+                throw new Exception("error");
+
+            // Find the points with minimum and maximum x, y, and z
+            float3 MinX, MaxX, MinY, MaxY, MinZ, MaxZ;
+
+            MinX = MaxX = MinY = MaxY = MinZ = MaxZ = pPoints[0]; // XMLoadFloat3(pPoints);
+
+            for (int i = 1; i < Count; ++i)
+            {
+                float3 Point = pPoints[i];// XMLoadFloat3(reinterpret_cast <const XMFLOAT3*> (reinterpret_cast <const uint8_t*> (pPoints) + i * Stride));
+
+                float px = Point.x;
+                float py = Point.y;
+                float pz = Point.z;
+
+                if (px < MinX.x)
+                    MinX = Point;
+
+                if (px > MaxX.x)
+                    MaxX = Point;
+
+                if (py < MinY.y)
+                    MinY = Point;
+
+                if (py > MaxY.y)
+                    MaxY = Point;
+
+                if (pz < MinZ.z)
+                    MinZ = Point;
+
+                if (pz > MaxZ.z)
+                    MaxZ = Point;
+            }
+
+            // Use the min/max pair that are farthest apart to form the initial sphere.
+            float3 DeltaX = MaxX - MinX; // XMVectorSubtract(MaxX, MinX);
+            float DistX = math.length(DeltaX); //  XMVector3Length(DeltaX);
+
+            float3 DeltaY = MaxY - MinY;// XMVectorSubtract(MaxY, MinY);
+            float DistY = math.length(DeltaY); //XMVector3Length(DeltaY);
+
+            float3 DeltaZ = MaxZ - MinZ;// XMVectorSubtract(MaxZ, MinZ);
+            float DistZ = math.length(DeltaZ); //XMVector3Length(DeltaZ);
+
+            float3 vCenter;
+            float vRadius;
+
+            if (DistX > DistY)
+            {
+                if (DistX > DistZ)
+                {
+                    // Use min/max x.
+                    vCenter = math.lerp(MaxX, MinX, 0.5f);// XMVectorLerp(MaxX, MinX, 0.5f);
+                    vRadius = DistX * 0.5f;// XMVectorScale(DistX, 0.5f);
+                }
+                else
+                {
+                    // Use min/max z.
+                    vCenter = math.lerp(MaxZ, MinZ, 0.5f);//XMVectorLerp(MaxZ, MinZ, 0.5f);
+                    vRadius = DistZ * 0.5f;//XMVectorScale(DistZ, 0.5f);
+                }
+            }
+            else // Y >= X
+            {
+                if (DistY > DistZ)
+                {
+                    // Use min/max y.
+                    vCenter = math.lerp(MaxY, MinY, 0.5f);//XMVectorLerp(MaxY, MinY, 0.5f);
+                    vRadius = DistY * 0.5f;//XMVectorScale(DistY, 0.5f);
+                }
+                else
+                {
+                    // Use min/max z.
+                    vCenter = math.lerp(MaxZ, MinZ, 0.5f);//XMVectorLerp(MaxZ, MinZ, 0.5f);
+                    vRadius = DistZ * 0.5f;//XMVectorScale(DistZ, 0.5f);
+                }
+            }
+
+            // Add any points not inside the sphere.
+            for (int i = 0; i < Count; ++i)
+            {
+                float3 Point = pPoints[i] ;// XMLoadFloat3(reinterpret_cast <const XMFLOAT3*> (reinterpret_cast <const uint8_t*> (pPoints) + i * Stride));
+
+                float3 Delta = Point - vCenter;// XMVectorSubtract(Point, vCenter);
+
+                float Dist = math.length(Delta); //XMVector3Length(Delta);
+
+                if (Dist > vRadius)
+                {
+                    // Adjust sphere to include the new point.
+                    vRadius = (vRadius + Dist) * 0.5f;// XMVectorScale(XMVectorAdd(vRadius, Dist), 0.5f);
+                    vCenter = vCenter + (1.0f - vRadius / Dist) * Delta; // XMVectorAdd(vCenter, XMVectorMultiply(XMVectorSubtract(XMVectorReplicate(1.0f), XMVectorDivide(vRadius, Dist)), Delta));
+                }
+            }
+
+            Out.Center = vCenter;
+            Out.Radius = vRadius;
+            //XMStoreFloat3(&Out.Center, vCenter);
+            //XMStoreFloat(&Out.Radius, vRadius);
+        }
+
+        //-----------------------------------------------------------------------------
+        // Creates a bounding sphere that contains two other bounding spheres
+        //-----------------------------------------------------------------------------
+        public static void CreateMerged(ref BoundingSphere Out, ref BoundingSphere S1, ref BoundingSphere S2)
+        {
+            float3 Center1 = S1.Center;
+            float r1 = S1.Radius;
+
+            float3 Center2 = S2.Center;
+            float r2 = S2.Radius;
+
+            float3 V = Center2 - Center1;
+
+            float Dist = math.length(V);
+
+            float d = Dist;
+
+            if (r1 + r2 >= d)
+            {
+                if (r1 - r2 >= d)
+                {
+                    Out = S1;
+                    return;
+                }
+                else if (r2 - r1 >= d)
+                {
+                    Out = S2;
+                    return;
+                }
+            }
+
+            float3 N = V / Dist;// XMVectorDivide(V, Dist);
+
+            float t1 = math.min(-r1, d - r2); // XMMin(-r1, d - r2);
+            float t2 = math.max( r1, d + r2);  // XMMax(r1, d + r2);
+            float t_5 = (t2 - t1) * 0.5f;
+
+            float3 NCenter = Center1 + (N * (t_5 + t1));// //XMVectorAdd(Center1, XMVectorMultiply(N, XMVectorReplicate(t_5 + t1)));
+
+            //XMStoreFloat3(&Out.Center, NCenter);
+            Out.Center = NCenter;
+            Out.Radius = t_5;
+        }
+    }
+
     struct Mesh
     {
-        //D3D12_INPUT_ELEMENT_DESC   LayoutElems[Attribute::Count];
-        //D3D12_INPUT_LAYOUT_DESC    LayoutDesc;
+        public D3D12_INPUT_ELEMENT_DESC[] LayoutElems;
+        public D3D12_INPUT_LAYOUT_DESC LayoutDesc;
 
-        public List<byte> Vertices;
+        public List<byte[]> Vertices;
         public List<uint> VertexStrides;
         public uint VertexCount;
-        //DirectX::BoundingSphere    BoundingSphere;
+        public BoundingSphere BoundingSphere;
 
 
         public Subset[] IndexSubsets;
@@ -482,4 +706,135 @@ public class ZClusterReader : MonoBehaviour
         //    }
         //}
     }
+
+    enum DXGI_FORMAT : uint
+    {
+        DXGI_FORMAT_UNKNOWN = 0,
+        DXGI_FORMAT_R32G32B32A32_TYPELESS = 1,
+        DXGI_FORMAT_R32G32B32A32_FLOAT = 2,
+        DXGI_FORMAT_R32G32B32A32_UINT = 3,
+        DXGI_FORMAT_R32G32B32A32_SINT = 4,
+        DXGI_FORMAT_R32G32B32_TYPELESS = 5,
+        DXGI_FORMAT_R32G32B32_FLOAT = 6,
+        DXGI_FORMAT_R32G32B32_UINT = 7,
+        DXGI_FORMAT_R32G32B32_SINT = 8,
+        DXGI_FORMAT_R16G16B16A16_TYPELESS = 9,
+        DXGI_FORMAT_R16G16B16A16_FLOAT = 10,
+        DXGI_FORMAT_R16G16B16A16_UNORM = 11,
+        DXGI_FORMAT_R16G16B16A16_UINT = 12,
+        DXGI_FORMAT_R16G16B16A16_SNORM = 13,
+        DXGI_FORMAT_R16G16B16A16_SINT = 14,
+        DXGI_FORMAT_R32G32_TYPELESS = 15,
+        DXGI_FORMAT_R32G32_FLOAT = 16,
+        DXGI_FORMAT_R32G32_UINT = 17,
+        DXGI_FORMAT_R32G32_SINT = 18,
+        DXGI_FORMAT_R32G8X24_TYPELESS = 19,
+        DXGI_FORMAT_D32_FLOAT_S8X24_UINT = 20,
+        DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS = 21,
+        DXGI_FORMAT_X32_TYPELESS_G8X24_UINT = 22,
+        DXGI_FORMAT_R10G10B10A2_TYPELESS = 23,
+        DXGI_FORMAT_R10G10B10A2_UNORM = 24,
+        DXGI_FORMAT_R10G10B10A2_UINT = 25,
+        DXGI_FORMAT_R11G11B10_FLOAT = 26,
+        DXGI_FORMAT_R8G8B8A8_TYPELESS = 27,
+        DXGI_FORMAT_R8G8B8A8_UNORM = 28,
+        DXGI_FORMAT_R8G8B8A8_UNORM_SRGB = 29,
+        DXGI_FORMAT_R8G8B8A8_UINT = 30,
+        DXGI_FORMAT_R8G8B8A8_SNORM = 31,
+        DXGI_FORMAT_R8G8B8A8_SINT = 32,
+        DXGI_FORMAT_R16G16_TYPELESS = 33,
+        DXGI_FORMAT_R16G16_FLOAT = 34,
+        DXGI_FORMAT_R16G16_UNORM = 35,
+        DXGI_FORMAT_R16G16_UINT = 36,
+        DXGI_FORMAT_R16G16_SNORM = 37,
+        DXGI_FORMAT_R16G16_SINT = 38,
+        DXGI_FORMAT_R32_TYPELESS = 39,
+        DXGI_FORMAT_D32_FLOAT = 40,
+        DXGI_FORMAT_R32_FLOAT = 41,
+        DXGI_FORMAT_R32_UINT = 42,
+        DXGI_FORMAT_R32_SINT = 43,
+        DXGI_FORMAT_R24G8_TYPELESS = 44,
+        DXGI_FORMAT_D24_UNORM_S8_UINT = 45,
+        DXGI_FORMAT_R24_UNORM_X8_TYPELESS = 46,
+        DXGI_FORMAT_X24_TYPELESS_G8_UINT = 47,
+        DXGI_FORMAT_R8G8_TYPELESS = 48,
+        DXGI_FORMAT_R8G8_UNORM = 49,
+        DXGI_FORMAT_R8G8_UINT = 50,
+        DXGI_FORMAT_R8G8_SNORM = 51,
+        DXGI_FORMAT_R8G8_SINT = 52,
+        DXGI_FORMAT_R16_TYPELESS = 53,
+        DXGI_FORMAT_R16_FLOAT = 54,
+        DXGI_FORMAT_D16_UNORM = 55,
+        DXGI_FORMAT_R16_UNORM = 56,
+        DXGI_FORMAT_R16_UINT = 57,
+        DXGI_FORMAT_R16_SNORM = 58,
+        DXGI_FORMAT_R16_SINT = 59,
+        DXGI_FORMAT_R8_TYPELESS = 60,
+        DXGI_FORMAT_R8_UNORM = 61,
+        DXGI_FORMAT_R8_UINT = 62,
+        DXGI_FORMAT_R8_SNORM = 63,
+        DXGI_FORMAT_R8_SINT = 64,
+        DXGI_FORMAT_A8_UNORM = 65,
+        DXGI_FORMAT_R1_UNORM = 66,
+        DXGI_FORMAT_R9G9B9E5_SHAREDEXP = 67,
+        DXGI_FORMAT_R8G8_B8G8_UNORM = 68,
+        DXGI_FORMAT_G8R8_G8B8_UNORM = 69,
+        DXGI_FORMAT_BC1_TYPELESS = 70,
+        DXGI_FORMAT_BC1_UNORM = 71,
+        DXGI_FORMAT_BC1_UNORM_SRGB = 72,
+        DXGI_FORMAT_BC2_TYPELESS = 73,
+        DXGI_FORMAT_BC2_UNORM = 74,
+        DXGI_FORMAT_BC2_UNORM_SRGB = 75,
+        DXGI_FORMAT_BC3_TYPELESS = 76,
+        DXGI_FORMAT_BC3_UNORM = 77,
+        DXGI_FORMAT_BC3_UNORM_SRGB = 78,
+        DXGI_FORMAT_BC4_TYPELESS = 79,
+        DXGI_FORMAT_BC4_UNORM = 80,
+        DXGI_FORMAT_BC4_SNORM = 81,
+        DXGI_FORMAT_BC5_TYPELESS = 82,
+        DXGI_FORMAT_BC5_UNORM = 83,
+        DXGI_FORMAT_BC5_SNORM = 84,
+        DXGI_FORMAT_B5G6R5_UNORM = 85,
+        DXGI_FORMAT_B5G5R5A1_UNORM = 86,
+        DXGI_FORMAT_B8G8R8A8_UNORM = 87,
+        DXGI_FORMAT_B8G8R8X8_UNORM = 88,
+        DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM = 89,
+        DXGI_FORMAT_B8G8R8A8_TYPELESS = 90,
+        DXGI_FORMAT_B8G8R8A8_UNORM_SRGB = 91,
+        DXGI_FORMAT_B8G8R8X8_TYPELESS = 92,
+        DXGI_FORMAT_B8G8R8X8_UNORM_SRGB = 93,
+        DXGI_FORMAT_BC6H_TYPELESS = 94,
+        DXGI_FORMAT_BC6H_UF16 = 95,
+        DXGI_FORMAT_BC6H_SF16 = 96,
+        DXGI_FORMAT_BC7_TYPELESS = 97,
+        DXGI_FORMAT_BC7_UNORM = 98,
+        DXGI_FORMAT_BC7_UNORM_SRGB = 99,
+        DXGI_FORMAT_AYUV = 100,
+        DXGI_FORMAT_Y410 = 101,
+        DXGI_FORMAT_Y416 = 102,
+        DXGI_FORMAT_NV12 = 103,
+        DXGI_FORMAT_P010 = 104,
+        DXGI_FORMAT_P016 = 105,
+        DXGI_FORMAT_420_OPAQUE = 106,
+        DXGI_FORMAT_YUY2 = 107,
+        DXGI_FORMAT_Y210 = 108,
+        DXGI_FORMAT_Y216 = 109,
+        DXGI_FORMAT_NV11 = 110,
+        DXGI_FORMAT_AI44 = 111,
+        DXGI_FORMAT_IA44 = 112,
+        DXGI_FORMAT_P8 = 113,
+        DXGI_FORMAT_A8P8 = 114,
+        DXGI_FORMAT_B4G4R4A4_UNORM = 115,
+
+        DXGI_FORMAT_P208 = 130,
+        DXGI_FORMAT_V208 = 131,
+        DXGI_FORMAT_V408 = 132,
+
+
+        DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE = 189,
+        DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE = 190,
+
+
+        DXGI_FORMAT_FORCE_UINT = 0xffffffff
+    };
 }
