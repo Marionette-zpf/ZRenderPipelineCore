@@ -339,6 +339,13 @@ public class ZClusterReader : MonoBehaviour
         Debug.LogWarning("FileHeader : " + header.ToString());
     }
 
+    public ClusterMesh GetMesh()
+    {
+        Test01();
+        return m_meshes[0];
+    }
+
+
     public PackedTriangle ConvertBytesToPackedTriangle(ReadOnlySpan<byte> bytes)
     {
         PackedTriangle triangle = new PackedTriangle();

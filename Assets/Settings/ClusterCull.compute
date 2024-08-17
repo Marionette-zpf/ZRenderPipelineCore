@@ -75,5 +75,5 @@ void ClusterCull(uint3 id : SV_DispatchThreadID, uint gtid : SV_GroupIndex, uint
     //Cluster cluster = ClusterBuffer[gid];
 
     //CullResultIndexBuffer.Append(IndexBuffer.Consume());
-    CullResultIndexBuffer.Append(IndexBuffer[gid]);
+    //CullResultIndexBuffer.Append(IndexBuffer[id.x]);
 }
