@@ -29,25 +29,21 @@ cbuffer ConstantBuffer
 
 struct Cluster
 {
-    uint VertCount;
-    uint VertOffset;
     uint PrimCount;
     uint PrimOffset;
 };
 
-struct ClusterCullResultBuffer
-{
-    uint ClusterVertexCount;
-    uint CullResultClusterCount;
-};
 
-RWStructuredBuffer<Vertex>                     VertexBuffer;
-StructuredBuffer<uint>                         IndexBuffer;
-RWStructuredBuffer<Cluster>                    ClusterBuffer;
-ByteAddressBuffer                              ClusterIndexBuffer;
-RWStructuredBuffer<ClusterCullData>            CullDataBuffer;
-RWStructuredBuffer<ClusterCullResultBuffer>    CullResultBuffer;
-AppendStructuredBuffer<uint>                   CullResultIndexBuffer;
+//Input
+StructuredBuffer<Vertex>                     VertexBuffer;
+StructuredBuffer<Cluster>                    ClusterBuffer;
+StructuredBuffer<uint3>                      ClusterPrimitiveBuffer;
+StructuredBuffer<ClusterCullData>            CullDataBuffer;
+
+//Output
+AppendStructuredBuffer<Cluster>              CullResultClusterBuffer;
+AppendStructuredBuffer<uint3>                CullResultPrimitiveBuffer;
+RWStructuredBuffer<uint4>                    CullResultArgsBuffer;
 
 // uint3 UnpackPrimitive(uint primitive)
 // {
@@ -67,12 +63,16 @@ AppendStructuredBuffer<uint>                   CullResultIndexBuffer;
 //     return IndexBuffer.Load(localIndex * 4);
 // }
 
-//SV_GroupID : Cluster
-//SV_GroupIndex : Vertex[64]
-[numthreads(64, 1, 1)]
-void ClusterCull(uint3 id : SV_DispatchThreadID, uint gtid : SV_GroupIndex, uint gid : SV_GroupID)
+//SV_GroupIndex : 0 - (ClusterCount - 1)
+//SV_GroupID : Primitive[128]
+[numthreads(128, 1, 1)]
+void ClusterCull(uint3 id : SV_GroupThreadID, uint gtid : SV_GroupIndex, uint gid : SV_GroupID)
 {
     //Cluster cluster = ClusterBuffer[gid];
+    CullResultClusterBuffer.Append(ClusterBuffer[gtid]);
+    CullResultPrimitiveBuffer.Append(ClusterPrimitiveBuffer[id.x]);
+    CullResultArgsBuffer[0] = float4(3 * 128, 2263, 0, 0);
+
 
     //CullResultIndexBuffer.Append(IndexBuffer.Consume());
     //CullResultIndexBuffer.Append(IndexBuffer[id.x]);
