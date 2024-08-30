@@ -40,11 +40,31 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
             uint PrimCount;
             uint PrimOffset;
         };
+        struct Meshlet
+        {
+            uint VertCount;
+            uint VertOffset;
+            uint PrimCount;
+            uint PrimOffset;
+        };
+
+        struct Triangle
+        {
+            uint i0;
+            uint i1;
+            uint i2;
+        };
+
 
         StructuredBuffer<Vertex>       VertexBuffer;
         StructuredBuffer<uint3>        CullResultPrimitiveBuffer;
         StructuredBuffer<Cluster>      CullResultClusterBuffer;
         StructuredBuffer<MeshOffset>   MeshOffsetBuffer;
+
+        StructuredBuffer<Meshlet>   _MeshletBuffer;
+        StructuredBuffer<float3>    _VerticesBuffer;
+        StructuredBuffer<uint3>     _IndicesBuffer;
+        
 
         TEXTURE2D(_MainTex);	SAMPLER(sampler_MainTex);
 
@@ -104,10 +124,24 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
                 // vertexOS.Normal = float3(1.0, 0.0, 0.0);
                 // vertexOS.Texcoord = float2(1.0, 0.0);
                 // vertexOS.Tangent = float4(1.0, 0.0, 0.0, 0.0);
+                Meshlet meshlet = _MeshletBuffer[input.ClusterInstanceID];
+                uint triangleIndex = floor(input.vertexID / 3);
+                uint vertexIndex = input.vertexID % 3;
 
-                output.positionCS = TransformWorldToHClip(vertexOS.Position);
-                output.uv = vertexOS.Texcoord;
-                output.normalWS = TransformObjectToWorldNormal(vertexOS.Normal);
+                float3 PositionOS = 0;
+                if (triangleIndex >= meshlet.PrimCount)
+                {
+                    PositionOS /= 0;
+                }
+                else
+                {
+                    uint3 tri = _IndicesBuffer[meshlet.PrimOffset + triangleIndex];
+                    
+                    PositionOS = _VerticesBuffer[tri[vertexIndex]];
+                }
+
+
+                output.positionCS = TransformWorldToHClip(PositionOS);
                 return output;
             }
 

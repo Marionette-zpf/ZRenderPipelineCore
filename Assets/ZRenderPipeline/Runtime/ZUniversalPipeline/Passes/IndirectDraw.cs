@@ -81,13 +81,16 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
         public override void ExecuRendererPass(ScriptableRenderContext context, CommandBuffer cmd, ref ZRenderingData renderingData)
         {
-            if(vertexBufferLength == 0)
+
+            commandExecuter?.ExcuteCommand(cmd);
+
+            if (vertexBufferLength == 0)
             {
                 Debug.Log("Error");
                 return;
             }
 
-            if(CreateBuffer)
+            if (CreateBuffer)
             {
                 CreateVertexBuffer();
                 CreateClusterBuffer();
@@ -102,7 +105,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
                 CreateBuffer = false;
             }
 
-            if(SetBuffer)
+            if (SetBuffer)
             {
                 cmd.SetBufferData(VertexBuffer, VertexBufferArray);
                 cmd.SetBufferData(ClusterBuffer, ClusterBufferArray);
@@ -137,7 +140,7 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
 
             cmd.DrawProceduralIndirect(Matrix4x4.identity, mat, 0, MeshTopology.Triangles, CullResultArgsBuffer, 0);
 
-            if(DebugBuffer)
+            if (DebugBuffer)
             {
                 uint3[] resultDebug = new uint3[clusterPrimitiveLength];
                 CullResultPrimitiveBuffer.GetData(resultDebug);
@@ -154,9 +157,15 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
                 DebugBuffer = false;
             }
 
+
+
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();       
         }
+
+        public CommandExecuter commandExecuter;
+
+
 
         public override void OnFrameEnd(CommandBuffer cmd) 
         {
@@ -276,6 +285,11 @@ namespace UnityEngine.Rendering.ZPipeline.ZUniversal
         public uint NormalCone3;
         public uint NormalCone4;
         public uint ApexOffset; // apex = center - axis * offset
+    }
+
+    public interface CommandExecuter
+    {
+        public void ExcuteCommand(CommandBuffer commandBuffer);
     }
 }
 
