@@ -29,6 +29,8 @@ cbuffer ConstantBuffer
 
 struct Cluster
 {
+    uint VertCount;
+    uint VertOffset;
     uint PrimCount;
     uint PrimOffset;
 };
@@ -36,6 +38,7 @@ struct Cluster
 
 //Input
 StructuredBuffer<Vertex>                     VertexBuffer;
+StructuredBuffer<uint>                       IndexBuffer;
 StructuredBuffer<Cluster>                    ClusterBuffer;
 StructuredBuffer<uint3>                      ClusterPrimitiveBuffer;
 StructuredBuffer<ClusterCullData>            CullDataBuffer;
@@ -71,7 +74,7 @@ void ClusterCull(uint3 id : SV_GroupThreadID, uint gtid : SV_GroupIndex, uint gi
     //Cluster cluster = ClusterBuffer[gid];
     CullResultClusterBuffer.Append(ClusterBuffer[gtid]);
     CullResultPrimitiveBuffer.Append(ClusterPrimitiveBuffer[id.x]);
-    CullResultArgsBuffer[0] = float4(3 * 128, 2263, 0, 0);
+    // CullResultArgsBuffer[0] = float4(3 * 128, 2263, 0, 0);
 
 
     //CullResultIndexBuffer.Append(IndexBuffer.Consume());

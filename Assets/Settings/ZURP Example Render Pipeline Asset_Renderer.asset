@@ -29,10 +29,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_CameraMask: -1
   m_Active: 1
-  ClusterMesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
-  Upload: 0
+  Clear: 1
+  CreateBuffer: 0
+  SetBuffer: 0
+  DebugBuffer: 0
   mat: {fileID: 2100000, guid: 54fdb464f68f2854f90b2a6cf58527bf, type: 2}
   ClusterCullCS: {fileID: 7200000, guid: dd274764d6949334986b8dad98160ea8, type: 3}
+  vertexBufferLength: 101166
+  indexBufferLength: 605916
+  clusterBufferLength: 2263
+  clusterPrimitiveLength: 201972
+  DrawLength: 0
+  IndexBufferArray: 
+  ClusterPrimitiveArray: []
 --- !u!114 &-5405089604891653235
 MonoBehaviour:
   m_ObjectHideFlags: 0

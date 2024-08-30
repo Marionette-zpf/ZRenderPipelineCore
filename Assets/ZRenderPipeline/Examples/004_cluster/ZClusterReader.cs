@@ -10,292 +10,17 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.ZPipeline.ZUniversal;
 
-public class ZClusterReader : MonoBehaviour, CommandExecuter
+public class ZClusterReader : MonoBehaviour
 {
 
     public static string g_Path = "/ZRenderPipeline/Examples/004_cluster/";
 
     public string fileName;
-
-    public MeshFilter meshFilter;
-
     private byte[] m_buffer;
     public ClusterMesh[] m_meshes;
 
     public BoundingSphere m_boundingSphere;
 
-
-    private Mesh m_mesh;
-
-
-    /////
-    // Data Loaders
-
-    //uint3 UnpackPrimitive(uint primitive)
-    //{
-    //    // Unpacks a 10 bits per index triangle from a 32-bit uint.
-    //    return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
-    //}
-
-
-    uint4 GetPrimitive(Meshlet m, uint index)
-    {
-        uint tIndex = m.PrimOffset + index;
-
-        var triangle = m_meshes[0].PrimitiveIndices[tIndex];
-
-        return new uint4(triangle.i0, triangle.i1, triangle.i2, tIndex);
-    }
-
-    uint GetVertexIndex(Meshlet m, uint localIndex)
-    {
-        localIndex = m.VertOffset + localIndex;
-
-        var spanVet = new Span<byte>(m_meshes[0].UniqueVertexIndices);
-
-        return MemoryPackSerializer.Deserialize<uint>(spanVet.Slice((int)localIndex * 4));
-
-        //if (MeshInfo.IndexBytes == 4) // 32-bit Vertex Indices
-        //{
-        //    return  UniqueVertexIndices.Load(localIndex * 4);
-        //}
-        //else // 16-bit Vertex Indices
-        //{
-        //    // Byte address must be 4-byte aligned.
-        //    uint wordOffset = (localIndex & 0x1);
-        //    uint byteOffset = (localIndex / 2) * 4;
-
-        //    // Grab the pair of 16-bit indices, shift & mask off proper 16-bits.
-        //    uint indexPair = UniqueVertexIndices.Load(byteOffset);
-        //    uint index = (indexPair >> (wordOffset * 16)) & 0xffff;
-
-        //    return index;
-        //}
-    }
-
-    float3 GetVertexAttributes(uint meshletIndex, uint vertexIndex)
-    {
-        //Debug.LogWarning("vertexIndex : " + vertexIndex + " ,m_meshes[0].Vertexs : " + m_meshes[0].Vertexs.Length);
-        return m_meshes[0].Vertexs[vertexIndex];
-        //Vertex v = Vertices[vertexIndex];
-
-        //VertexOut vout;
-        //vout.PositionVS = mul(float4(v.Position, 1), Globals.WorldView).xyz;
-        //vout.PositionHS = mul(float4(v.Position, 1), Globals.WorldViewProj);
-        //vout.Normal = MeshInfo.MeshletOffset <= 0;// mul(float4(v.Normal, 0), Globals.World).xyz;
-        //vout.MeshletIndex = meshletIndex;
-
-        //return vout;
-    }
-
-
-    public int count = 1;
-
-    public GameObject cube;
-
-    public static ZClusterReader instance;
-    bool isOutSidePlane(Plane plane, float4 position)
-    {
-        return math.dot(plane.normal, position.xyz) + plane.distance + position.w < 0;
-    }
-
-    bool FrustumCull(float4 position)
-    {
-        for (int i = 0; i < 6; ++i)
-        {
-            if (isOutSidePlane(FrustumPlanes[i], position))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void OnEnable()
-    {
-        instance = this;
-
-        IndirectDraw.Instance.commandExecuter = this;
-
-        GeometryUtility.CalculateFrustumPlanes(Camera.main, FrustumPlanes);
-
-        Test01();
-        m_mesh = new Mesh();
-        m_mesh.indexFormat = IndexFormat.UInt32;
-
-        List<int> triangles = new List<int>();
-
-        var clusterMesh = m_meshes[0];
-        clusterMesh.UniquePrimitiveIndices = new Triangle[clusterMesh.PrimitiveIndices.Length];
-
-        for (int subsetIndex = 0; subsetIndex < clusterMesh.MeshletSubsets.Length; subsetIndex++)
-        {
-            var subset = clusterMesh.MeshletSubsets[subsetIndex];
-
-            var MeshletOffset = subset.Offset;
-
-            for (int gid = 0; gid < subset.Count; gid++)
-            {
-                if (FrustumCull(clusterMesh.CullingData[gid].BoundingSphere))
-                    continue;
-
-
-                var go = GameObject.Instantiate(cube);
-                go.transform.position = clusterMesh.CullingData[gid].BoundingSphere.xyz;
-
-                var verts = new List<uint>();
-                var tris = new List<uint4>();
-
-                for (int gtid = 0; gtid < 128; gtid++)
-                {
-                    Meshlet m = clusterMesh.Meshlets[MeshletOffset + gid];
-
-                    //Debug.LogWarning("m.PrimCount" + m.PrimCount);
-
-                    //if (gid == 764)
-                    //{
-                    //    Debug.LogWarning(gid);
-                    //}
-
-                    if (gtid < m.PrimCount)
-                    {
-                        tris.Add(GetPrimitive(m, (uint)gtid));
-                    }
-
-                    if (gtid < m.VertCount)
-                    {
-                        uint vertexIndex = GetVertexIndex(m, (uint)gtid);
-
-
-
-                        float3 pos = GetVertexAttributes((uint)gid, vertexIndex);
-
-                        //if (gid == 764)
-                        //{
-                        //    Debug.LogWarning("vertexIndex : " + vertexIndex + " , pos : " + pos);
-
-                        //    var go = GameObject.Instantiate(cube);
-                        //    go.transform.position = pos;
-                        //}
-
-
-
-
-                        verts.Add(vertexIndex);
-                    }
-                }
-
-
-
-                for (int triangleIndex = 0; triangleIndex < tris.Count; triangleIndex++)
-                {
-                    var triangle = tris[triangleIndex];
-
-                    var uniT = new Triangle() { i0 = verts[(int)triangle.z], i1 = verts[(int)triangle.y], i2 = verts[(int)triangle.x] };
-
-                    triangles.Add((int)uniT.i0);
-                    triangles.Add((int)uniT.i1);
-                    triangles.Add((int)uniT.i2);
-
-                    clusterMesh.UniquePrimitiveIndices[triangle.w] = uniT;
-                }
-
-            }
-        }
-
-
-        //List<int> triangles = new List<int>();
-
-        //Span<byte> spanIndex = new Span<byte>(m_meshes[0].Indices);
-
-        //for (int i = 0; i < m_meshes[0].IndexCount / m_meshes[0].IndexSize; i++)
-        //{
-        //    triangles.Add(MemoryPackSerializer.Deserialize<int>(spanIndex.Slice(i * sizeof(int))));
-        //}
-
-        //if (EqualityComparer<ClusterMesh>.Default.Equals(m_meshes[0], default(ClusterMesh)))
-        //{
-            
-        //}
-
-        m_mesh.vertices = Array.ConvertAll(m_meshes[0].Vertexs, f3 => new Vector3(f3.x, f3.y, f3.z));
-        m_mesh.triangles = triangles.ToArray();
-        m_mesh.normals = Array.ConvertAll(m_meshes[0].Normals, f3 => new Vector3(f3.x, f3.y, f3.z));
-
-        meshFilter.mesh = m_mesh;
-
-
-        MeshletBuffer = new ComputeBuffer((int)clusterMesh.MeshletSubsets[0].Count, Marshal.SizeOf<Meshlet>(), ComputeBufferType.Structured);
-        VerticesBuffer = new ComputeBuffer(clusterMesh.Vertexs.Length, Marshal.SizeOf<float3>(), ComputeBufferType.Structured);
-        IndicesBuffer = new ComputeBuffer(clusterMesh.UniquePrimitiveIndices.Length, Marshal.SizeOf<Triangle>(), ComputeBufferType.Structured);
-
-        MeshletBuffer.SetData(clusterMesh.Meshlets);
-        VerticesBuffer.SetData(clusterMesh.Vertexs);
-        IndicesBuffer.SetData(clusterMesh.UniquePrimitiveIndices);
-
-        ArgsArray = new uint[4] { 128 * 3, clusterMesh.MeshletSubsets[0].Count, 0, 0 }; //ClusterVertexCount:64, ClusterCount 0, ClusterVertexCount * ClusterCount
-        ArgsBuffer = new ComputeBuffer(1, 4 * Marshal.SizeOf<uint>(), ComputeBufferType.IndirectArguments);
-        ArgsBuffer.SetData(ArgsArray);
-
-        testClusterMesh = clusterMesh;
-
-        inited = true;
-    }
-
-    private ClusterMesh testClusterMesh;
-
-    public uint[] ArgsArray;
-
-    public ComputeBuffer MeshletBuffer;
-    public ComputeBuffer VerticesBuffer;
-    public ComputeBuffer IndicesBuffer;
-    public ComputeBuffer ArgsBuffer;
-
-    public Material material;
-
-    private bool inited = false;
-
-    public void ExcuteCommand(CommandBuffer commandBuffer)
-    {
-        if (!inited)
-            return;
-
-        commandBuffer.SetGlobalBuffer("_MeshletBuffer", MeshletBuffer);
-        commandBuffer.SetGlobalBuffer("_VerticesBuffer", VerticesBuffer);
-        commandBuffer.SetGlobalBuffer("_IndicesBuffer", IndicesBuffer);
-        commandBuffer.SetGlobalBuffer("_ArgsBuffer", ArgsBuffer);
-
-        commandBuffer.SetBufferData(MeshletBuffer, testClusterMesh.Meshlets);
-        commandBuffer.SetBufferData(VerticesBuffer, testClusterMesh.Vertexs);
-        commandBuffer.SetBufferData(IndicesBuffer, testClusterMesh.UniquePrimitiveIndices);
-
-        commandBuffer.SetBufferData(ArgsBuffer, ArgsArray);
-
-        commandBuffer.DrawProceduralIndirect(Matrix4x4.identity, material, 0, MeshTopology.Triangles, ArgsBuffer);
-    }
-
-    private void OnDisable()
-    {
-        inited = false;
-
-        CoreUtils.Destroy(m_mesh);
-
-        ArgsBuffer?.Dispose();
-        IndicesBuffer?.Dispose();
-        VerticesBuffer?.Dispose();
-        MeshletBuffer?.Dispose();
-    }
-
-    [ContextMenu("ResetMesh")]
-    public void ResetMesh()
-    {
-        OnDisable();
-        OnEnable();
-    }
-
-
-
-    private Plane[] FrustumPlanes = new Plane[6];
 
     [ContextMenu("测试读取 Cluster 数据")]
     public void Test01()
@@ -311,8 +36,7 @@ public class ZClusterReader : MonoBehaviour, CommandExecuter
 
         try
         {
-            br = new BinaryReader(new FileStream(Application.dataPath + g_Path + fileName,
-                            FileMode.Open));
+            br = new BinaryReader(new FileStream(Application.dataPath + g_Path + fileName, FileMode.Open));
         }
         catch (IOException e)
         {
@@ -618,7 +342,55 @@ public class ZClusterReader : MonoBehaviour, CommandExecuter
             {
                 BoundingSphere.CreateMerged(ref m_boundingSphere, ref m_boundingSphere, ref m.BoundingSphere);
             }
+
+            m_meshes[i].UniquePrimitiveIndices = new Triangle[m_meshes[i].PrimitiveIndices.Length];
+
+            for (int subsetIndex = 0; subsetIndex < m_meshes[i].MeshletSubsets.Length; subsetIndex++)
+            {
+                var subset = m_meshes[i].MeshletSubsets[subsetIndex];
+
+                var MeshletOffset = subset.Offset;
+
+                for (int gid = 0; gid < subset.Count; gid++)
+                {
+
+                    var verts = new List<uint>();
+                    var tris = new List<uint4>();
+
+                    for (int gtid = 0; gtid < 128; gtid++)
+                    {
+                        Meshlet meshlet = m_meshes[i].Meshlets[MeshletOffset + gid];
+
+                        if (gtid < meshlet.PrimCount)
+                        {
+                            tris.Add(GetPrimitive(meshlet, (uint)gtid));
+                        }
+
+                        if (gtid < meshlet.VertCount)
+                        {
+                            uint vertexIndex = GetVertexIndex(meshlet, (uint)gtid);
+
+                            float3 pos = GetVertexAttributes((uint)gid, vertexIndex);
+
+                            verts.Add(vertexIndex);
+                        }
+                    }
+
+                    for (int triangleIndex = 0; triangleIndex < tris.Count; triangleIndex++)
+                    {
+                        var triangle = tris[triangleIndex];
+
+                        var uniT = new Triangle() { i0 = verts[(int)triangle.z], i1 = verts[(int)triangle.y], i2 = verts[(int)triangle.x] };
+
+                        m_meshes[i].UniquePrimitiveIndices[triangle.w] = uniT;
+                    }
+
+                }
+            }   
+
         }
+
+
 
         Debug.LogWarning("FileHeader : " + header.ToString());
     }
@@ -627,6 +399,29 @@ public class ZClusterReader : MonoBehaviour, CommandExecuter
     {
         Test01();
         return m_meshes[0];
+    }
+
+    uint4 GetPrimitive(Meshlet m, uint index)
+    {
+        uint tIndex = m.PrimOffset + index;
+
+        var triangle = m_meshes[0].PrimitiveIndices[tIndex];
+
+        return new uint4(triangle.i0, triangle.i1, triangle.i2, tIndex);
+    }
+
+    uint GetVertexIndex(Meshlet m, uint localIndex)
+    {
+        localIndex = m.VertOffset + localIndex;
+
+        var spanVet = new Span<byte>(m_meshes[0].UniqueVertexIndices);
+
+        return MemoryPackSerializer.Deserialize<uint>(spanVet.Slice((int)localIndex * 4));
+    }
+
+    float3 GetVertexAttributes(uint meshletIndex, uint vertexIndex)
+    {
+        return m_meshes[0].Vertexs[vertexIndex];
     }
 
 
@@ -960,9 +755,10 @@ public class ZClusterReader : MonoBehaviour, CommandExecuter
         public uint VertexCount;
         public BoundingSphere BoundingSphere;
 
-
+    
         public Subset[] IndexSubsets;
         public byte[] Indices;
+        public int[] index;
         public uint IndexSize;
         public uint IndexCount;
 
