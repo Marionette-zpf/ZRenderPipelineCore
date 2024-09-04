@@ -25,7 +25,7 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
             float3 Position;
             float3 Normal;
             float2 Texcoord;
-            float4 Tangent;
+            float3 Tangent;
         };
 
         struct MeshOffset
@@ -44,12 +44,8 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
         };
 
         StructuredBuffer<Vertex>       VertexBuffer;
-        StructuredBuffer<uint>         IndexBuffer;
         StructuredBuffer<MeshOffset>   MeshOffsetBuffer;
-        
-        // StructuredBuffer<Cluster>      CullResultClusterBuffer;
-        // StructuredBuffer<uint3>        CullResultPrimitiveBuffer;
-        
+
         StructuredBuffer<Cluster>      ClusterBuffer;
         StructuredBuffer<uint3>        ClusterPrimitiveBuffer;
 
@@ -80,22 +76,9 @@ Shader "Universal Render Pipeline/Custom/IndirectDraw"
                 float4 positionCS : SV_POSITION;
             };
 
-            Vertex GetClusterVertexAttribute(uint vertexID, uint ClusterPrimitiveInstanceID)
-            {   
-                MeshOffset meshOffset = MeshOffsetBuffer[ClusterPrimitiveInstanceID];
-                Cluster cluster = ClusterBuffer[ClusterPrimitiveInstanceID + (meshOffset.clusterStart - meshOffset.meshLength)];
-
-                uint index = ClusterPrimitiveBuffer[vertexID / 3 + cluster.PrimOffset][vertexID % 3];
-
-                Vertex vertexData = VertexBuffer[index];
-                return vertexData;
-            }
-
             Varyings vert (Attributes input)
             {
                 Varyings output;
-
-                //Vertex vertexOS = GetClusterVertexAttribute(input.vertexID, input.ClusterPrimitiveInstanceID);
 
                 MeshOffset meshOffset = MeshOffsetBuffer[input.ClusterPrimitiveInstanceID];
                 Cluster cluster = ClusterBuffer[input.ClusterPrimitiveInstanceID + (meshOffset.clusterStart - meshOffset.meshLength)];
